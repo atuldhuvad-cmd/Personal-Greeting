@@ -1,0 +1,11 @@
+{
+  "name": "Daily Inspiration",
+  "short_name": "Inspiration",
+  "description": "Personal daily poster and English greeting-card app.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#EEE9E1",
+  "theme_color": "#161B44",
+  "orientation": "portrait-primary",
+  "icons": []
+}

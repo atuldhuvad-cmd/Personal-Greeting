@@ -1,0 +1,16 @@
+﻿Backups/
+_TEMP_EXTRACT/
+Releases/Final/
+Releases/Candidates/*.zip
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.webp
+!App/assets/**/*.png
+!App/assets/**/*.jpg
+!App/assets/**/*.jpeg
+!App/assets/**/*.webp
+.DS_Store
+Thumbs.db
+desktop.ini
