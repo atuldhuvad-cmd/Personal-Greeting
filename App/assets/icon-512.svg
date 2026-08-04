@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Daily Inspiration">
-  <rect width="512" height="512" rx="104" fill="#171b48"/><circle cx="256" cy="220" r="120" fill="#d7b766"/>
-  <path d="M256 120v200M156 220h200M186 150l140 140M326 150L186 290" stroke="#171b48" stroke-width="24" stroke-linecap="round"/>
-  <path d="M128 382h256" stroke="#f6efe3" stroke-width="26" stroke-linecap="round"/>
-</svg>
