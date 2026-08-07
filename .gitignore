@@ -11,6 +11,10 @@ Releases/Candidates/*.zip
 !App/assets/**/*.jpg
 !App/assets/**/*.jpeg
 !App/assets/**/*.webp
+!App/artwork/**/*.png
+!App/artwork/**/*.jpg
+!App/artwork/**/*.jpeg
+!App/artwork/**/*.webp
 .DS_Store
 Thumbs.db
 desktop.ini
