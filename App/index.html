@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#171b48">
-<title>Daily Inspiration v2.3 FINAL RELEASE</title>
+<title>Daily Inspiration v2.3.1 FINAL RELEASE</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -33,6 +33,66 @@ canvas{width:100%;height:auto;display:block;background:white;border-radius:18px}
 @media(max-width:900px){body{padding:8px}.layout{grid-template-columns:1fr}.panel{position:static}.preview{order:-1}.filters{grid-template-columns:1fr 1fr}.cards{grid-template-columns:1fr 1fr}.version{display:none}}
 @media(max-width:520px){body{padding:6px}.row2,.actions,.filters,.cards,.artwork-row,.range-row,.share-grid{grid-template-columns:1fr}.panel,.browser{border-radius:17px;padding:13px}.frame{padding:6px;border-radius:16px}canvas{border-radius:12px}.top{display:block}.tabs{position:sticky;top:0;z-index:15;background:#eee8dfee;padding:7px 0;backdrop-filter:blur(8px)}button,.file-label{min-height:48px}.field{margin-bottom:10px}textarea{min-height:128px}.greeting-layout{display:block}.preview{margin-bottom:12px}.panel{box-shadow:0 10px 28px rgba(48,33,24,.13)}}
 
+.mobile-live-preview-box {
+  display: none;
+  background: #181412;
+  border: 1px solid #3c3028;
+  border-radius: 16px;
+  padding: 10px;
+  margin: 10px 0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.25);
+}
+@media (max-width: 900px) {
+  .mobile-live-preview-box.show {
+    display: block;
+  }
+}
+.mobile-live-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.mobile-live-preview-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e9ded1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mobile-live-preview-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #72263a;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.mobile-live-preview-stage {
+  width: min(100%, 220px);
+  aspect-ratio: 4 / 5;
+  margin: 0 auto 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  background: #000;
+}
+.mobile-live-preview-stage canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.mobile-live-actions {
+  display: flex;
+  gap: 8px;
+}
+.mobile-live-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
 .photo-editor-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
 .photo-editor-backdrop.show{display:flex}
 .photo-editor-panel{width:min(94vw,760px);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
@@ -50,7 +110,7 @@ canvas{width:100%;height:auto;display:block;background:white;border-radius:18px}
 </head>
 <body>
 <div class="app">
-<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration • આજની પ્રેરણા</p></div><div class="version">Daily Inspiration v2.3 FINAL RELEASE</div></header>
+<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration • આજની પ્રેરણા</p></div><div class="version">Daily Inspiration v2.3.1 FINAL RELEASE</div></header>
 <nav class="tabs">
 <button class="tab active" data-screen="studio">Daily Poster</button><button class="tab" data-screen="greeting">Personal Greeting</button>
 <button class="tab" data-screen="calendar">Calendar</button>
@@ -148,6 +208,19 @@ canvas{width:100%;height:auto;display:block;background:white;border-radius:18px}
 <option value="circle">Circular Portrait</option>
 <option value="none">No Photo</option>
 </select>
+</div>
+<div id="gMobileLivePreviewBox" class="mobile-live-preview-box">
+<div class="mobile-live-preview-header">
+<span class="mobile-live-preview-title">Live Photo Preview</span>
+<span class="mobile-live-preview-badge">Template-Aware</span>
+</div>
+<div class="mobile-live-preview-stage">
+<canvas id="gLivePhotoCanvas" width="360" height="450"></canvas>
+</div>
+<div class="mobile-live-actions">
+<button type="button" id="gMobileResetPhoto" class="secondary">Reset</button>
+<button type="button" id="gMobileApplyPhoto" class="primary">Apply / Done</button>
+</div>
 </div>
 <div class="range-row" id="gPhotoControls">
 <div><label>Photo zoom</label><input id="gPhotoZoom" type="range" min="1" max="2.5" step="0.01" value="1"></div>
@@ -425,6 +498,26 @@ function importUserEdits(file){
  if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const payload=JSON.parse(reader.result);if(!payload.customMessages||typeof payload.customMessages!=="object")throw new Error("Invalid backup");store.set("iis-custom-messages",payload.customMessages);if(Array.isArray(payload.favorites))store.set("iis-favorites",payload.favorites);if(payload.signature)$("signature").value=payload.signature;applyCustomIfAny();updateEditorMetrics();updateFavoriteButton();invalidate();render();showToast("Edits imported")}catch{showToast("Invalid edits backup")}};reader.readAsText(file)
 }
 
+function getLocalDateString(d=new Date()){
+  const year=d.getFullYear();
+  const month=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${year}-${month}-${day}`;
+}
+function getTodayDatasetDate(){
+  const todayStr=getLocalDateString();
+  if(DATASET.some(r=>r.Date===todayStr)) return todayStr;
+  const year=todayStr.slice(0,4);
+  const sameYearDates=DATASET.filter(r=>r.Date.startsWith(year+'-'));
+  if(sameYearDates.length>0){
+    const todayMs=new Date(todayStr+'T00:00:00').getTime();
+    const sorted=sameYearDates.slice().sort((a,b)=>{
+      return Math.abs(new Date(a.Date+'T00:00:00').getTime()-todayMs) - Math.abs(new Date(b.Date+'T00:00:00').getTime()-todayMs);
+    });
+    return sorted[0].Date;
+  }
+  return DATASET[0].Date;
+}
 function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;$("occasionGu").value=rec.Occasion_Gujarati;$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati,"gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=STYLES.includes(rec.Style)?rec.Style:"Classic Inspiration";$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
 function syncPalette(){document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.p===palette))}
 function setArtwork(file){if(!file)return;const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);img._url=url;artworkImage=img;artworkId=`${file.name}:${file.size}:${file.lastModified}`;clearNode($("artworkPreview"));const p=document.createElement("img");p.src=url;$("artworkPreview").appendChild(p);$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();render()};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to load this image.")};img.src=url}
@@ -848,7 +941,21 @@ function gSetPhoto(file){
   };
   img.src=url
 }
-function updatePhotoControls(){const enabled=$("gPhotoStyle").value!=="none";$("gPhotoControls").style.opacity=enabled?"1":".45";$("gPhotoControls").querySelectorAll("input").forEach(el=>el.disabled=!enabled);$("gEditPhoto").disabled=!enabled}
+function updateMobileLivePreview(){
+  const box=$("gMobileLivePreviewBox");
+  if(!box)return;
+  const hasPhoto=!!activeGreetingPhoto()&&$("gPhotoStyle").value!=="none";
+  box.classList.toggle("show",hasPhoto);
+  if(hasPhoto){
+    const liveCvs=$("gLivePhotoCanvas");
+    if(liveCvs&&gCanvas){
+      const lCtx=liveCvs.getContext("2d");
+      lCtx.clearRect(0,0,360,450);
+      lCtx.drawImage(gCanvas,0,0,1080,1350,0,0,360,450);
+    }
+  }
+}
+function updatePhotoControls(){const enabled=$("gPhotoStyle").value!=="none";$("gPhotoControls").style.opacity=enabled?"1":".45";$("gPhotoControls").querySelectorAll("input").forEach(el=>el.disabled=!enabled);$("gEditPhoto").disabled=!enabled;updateMobileLivePreview()}
 function gClearPhoto(doRender=true){
   if(gPhotoUrl)URL.revokeObjectURL(gPhotoUrl);
   gPhoto=null;
@@ -938,19 +1045,115 @@ function gRender(){
   gCtx.font="700 36px Georgia";
   gCtx.fillText(signature,540,900);
 
-  // User-selectable photo presentation.
+  // Template-aware photo safe zones
+  const TEMPLATE_PHOTO_ZONES = {
+    "Executive Blue": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Nature Green": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Classic Gold": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Premium Gift": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Black & Gold Luxury": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Navy Ribbon Premium": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "White Marble": {
+      large: { px: 740, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 810, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 755, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Marble with Cake": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    },
+    "Burgundy Luxury": {
+      large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
+      small: { px: 80, py: 1030, pw: 190, ph: 240, radius: 20, isCircle: false },
+      circle: { px: 85, py: 980, pw: 240, ph: 240, radius: 120, isCircle: true }
+    }
+  };
+
+  // User-selectable photo presentation (Template-aware with layout collision protection).
   const photoStyle=$("gPhotoStyle").value;
   const renderPhoto=activeGreetingPhoto();
   if(renderPhoto&&photoStyle!=="none"){
     const zoom=Number($("gPhotoZoom").value);
     const focusX=Number($("gPhotoFocusX").value);
     const focusY=Number($("gPhotoFocus").value);
-    let px=742,py=955,pw=290,ph=360,radius=28,isCircle=false;
 
-    if(photoStyle==="small"){
-      px=790;py=1000;pw=220;ph=275;radius=22;
-    }else if(photoStyle==="circle"){
-      px=758;py=980;pw=270;ph=270;radius=135;isCircle=true;
+    const tZone = TEMPLATE_PHOTO_ZONES[selected] || TEMPLATE_PHOTO_ZONES["Executive Blue"];
+    const zConfig = tZone[photoStyle] ? { ...tZone[photoStyle] } : { ...tZone["large"] };
+
+    let px = zConfig.px;
+    let py = zConfig.py;
+    let pw = zConfig.pw;
+    let ph = zConfig.ph;
+    let radius = zConfig.radius;
+    let isCircle = !!zConfig.isCircle;
+
+    // Collision validation against signature and message text regions
+    gCtx.save();
+    gCtx.font = "700 36px Georgia";
+    const sigTextWidth = gCtx.measureText(signature).width;
+    gCtx.restore();
+
+    const sigBox = { x: 540 - sigTextWidth / 2 - 15, y: 820, w: sigTextWidth + 30, h: 90 };
+    const msgBox = { x: 140, y: my, w: 800, h: msgBlockHeight };
+
+    function checkCollision(rx, ry, rw, rh) {
+      function rectsOverlap(r1, r2, gap = 15) {
+        return !(
+          r1.x + r1.w + gap <= r2.x ||
+          r2.x + r2.w + gap <= r1.x ||
+          r1.y + r1.h + gap <= r2.y ||
+          r2.y + r2.h + gap <= r1.y
+        );
+      }
+      const photoRect = { x: rx, y: ry, w: rw, h: rh };
+      return rectsOverlap(photoRect, sigBox) || rectsOverlap(photoRect, msgBox);
+    }
+
+    if (checkCollision(px, py, pw, ph)) {
+      const smallConfig = tZone["small"];
+      if (smallConfig && !checkCollision(smallConfig.px, smallConfig.py, smallConfig.pw, smallConfig.ph)) {
+        px = smallConfig.px;
+        py = smallConfig.py;
+        pw = smallConfig.pw;
+        ph = smallConfig.ph;
+        radius = smallConfig.radius;
+        if (photoStyle === "circle") {
+          isCircle = true;
+          radius = Math.min(pw, ph) / 2;
+        }
+      } else {
+        pw = Math.round(pw * 0.8);
+        ph = Math.round(ph * 0.8);
+        if (isCircle) radius = pw / 2;
+        if (checkCollision(px, py, pw, ph)) {
+          py = Math.min(1350 - ph - 20, py + 30);
+        }
+      }
     }
 
     gCtx.save();
@@ -978,6 +1181,7 @@ function gRender(){
   $("gShare").disabled=false;
   $("gDownload").disabled=false;
   $("gStatus").textContent=`Greeting generated • ${selected} • 1080 × 1350`;
+  updateMobileLivePreview();
 }
 function gCaption(){return `${$("gTitleEn").value}\n\n${$("gMessageEn").value}\n\n— ${$("signature").value||"Dr. Atul"}`}
 async function gShare(){
@@ -1026,7 +1230,7 @@ function gSave(){
 }
 function gReset(){
   ["gName","gSecondName","gAge","gYears","gDetail","gTitleEn","gMessageEn"].forEach(id=>$(id).value="");
-  $("gDate").value=new Date().toISOString().slice(0,10);
+  $("gDate").value=getLocalDateString();
   $("gOccasion").value="Birthday";
   $("gRelation").value="Friend";
   $("gTone").value="Heartfelt";
@@ -1043,7 +1247,7 @@ function initGreeting(){
   GREETING_RELATIONS.forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$("gRelation").appendChild(o)});
   GREETING_TONES.forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$("gTone").appendChild(o)});
   GREETING_DESIGNS.forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$("gDesign").appendChild(o)});
-  $("gDate").value=new Date().toISOString().slice(0,10);
+  $("gDate").value=getLocalDateString();
   $("gOccasion").value="Birthday";
   $("gRelation").value="Friend";
   $("gTone").value="Heartfelt";
@@ -1067,6 +1271,18 @@ function initGreeting(){
   $("gPhotoZoom").addEventListener("input",()=>{if(gPhoto)gRender()});
   $("gPhotoFocusX").addEventListener("input",()=>{if(gPhoto)gRender()});
   $("gEditPhoto").addEventListener("click",openPhotoEditor);
+  $("gMobileResetPhoto").addEventListener("click",()=>{
+    gEditedPhoto=null;
+    $("gPhotoZoom").value="1";
+    $("gPhotoFocusX").value="0";
+    $("gPhotoFocus").value="0.45";
+    if(activeGreetingPhoto())gRender();
+  });
+  $("gMobileApplyPhoto").addEventListener("click",()=>{
+    showToast("Photo adjustment applied");
+    const frame=document.querySelector("#greeting .frame");
+    if(frame)frame.scrollIntoView({behavior:"smooth",block:"nearest"});
+  });
   $("gResetPhoto").addEventListener("click",()=>{
     gEditedPhoto=null;
     $("gPhotoZoom").value="1";
@@ -1134,7 +1350,7 @@ function initGreeting(){
 
 function init(){STYLES.forEach(s=>{const o=document.createElement("option");o.textContent=s;$("style").appendChild(o)});Object.entries(PALETTES).forEach(([name,p])=>{const b=document.createElement("button");b.className="swatch";b.dataset.p=name;b.title=name;b.style.background=`linear-gradient(135deg,${p.a},${p.b})`;b.onclick=()=>{palette=name;syncPalette();invalidate()};$("palettes").appendChild(b)});
 for(let i=1;i<=12;i++){const o=document.createElement("option");o.value=String(i).padStart(2,"0");o.textContent=new Date(2026,i-1,1).toLocaleDateString("en-IN",{month:"long"});$("monthFilter").appendChild(o)}[...new Set(DATASET.map(r=>r.Category))].sort().forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$("categoryFilter").appendChild(o)});[...new Set(DATASET.map(r=>r.Cultural_Context))].sort().forEach(v=>{const o=document.createElement("option");o.value=o.textContent=v;$("contextFilter").appendChild(o)});
-$("date").onchange=e=>load(e.target.value);["occasionEn","occasionGu","signature","style","artworkZoom","artworkFocus"].forEach(id=>$(id).addEventListener("input",invalidate));["messageEn","messageGu"].forEach(id=>$(id).addEventListener("input",()=>{updateEditorMetrics();invalidate()}));$("artworkZoom").addEventListener("input",()=>{if(artworkImage)render()});$("artworkFocus").addEventListener("input",()=>{if(artworkImage)render()});$("artworkFile").onchange=e=>setArtwork(e.target.files[0]);$("clearArtwork").onclick=()=>clearArtwork(true);$("resetEnglish").onclick=resetEnglish;$("resetGujarati").onclick=resetGujarati;$("saveCustom").onclick=saveCustomMessages;$("restoreOriginal").onclick=restoreOriginal;$("generate").onclick=()=>{render();addHistory();cvs.toBlob(blob=>saveGeneratedImage(blob,{type:"daily",date:$("date").value,occasion:$("occasionEn").value}),"image/png")};$("download").onclick=()=>{if(generatedKey!==key())return invalidate();const a=document.createElement("a");a.download=`${$("date").value}_${$("occasionEn").value.replace(/[^a-z0-9]+/gi,"-")}_EN-GU.png`;a.href=cvs.toDataURL("image/png");a.click()};$("sharePoster").onclick=shareCurrentPoster;$("copyEnglish").onclick=()=>copyText(englishCaption(),"English caption");$("copyGujarati").onclick=()=>copyText(gujaratiCaption(),"Gujarati caption");$("copyBilingual").onclick=()=>copyText(bilingualCaption(),"Bilingual caption");$("exportEdits").onclick=exportUserEdits;$("importEdits").onchange=e=>importUserEdits(e.target.files[0]);$("savePreferences").onclick=savePreferences;$("resetPreferences").onclick=resetPreferences;$("cleanupMode").onchange=saveCleanupMode;$("cleanupNow").onclick=async()=>{const n=await deleteGeneratedImagesOlderThan(7);showToast(`${n} old image(s) deleted`)};$("deleteAllImages").onclick=async()=>{if(confirm("Delete all images stored inside the app?")){await deleteAllGeneratedImages();showToast("All app-stored images deleted")}};$("whyBtn").onclick=()=>$("why").classList.toggle("show");$("favoriteBtn").onclick=toggleFavorite;$("clearHistory").onclick=()=>{store.set("iis-history",[]);renderHistory()};$("runQa").onclick=runDatasetQa;$("exportQa").onclick=exportQa;["search","monthFilter","categoryFilter","contextFilter"].forEach(id=>$(id).addEventListener("input",renderCalendar));document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.screen));applyPreferences();load("2026-01-01");renderFavorites();renderHistory();populateSettings();loadCleanupSettings();runScheduledCleanup();if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+$("date").onchange=e=>load(e.target.value);["occasionEn","occasionGu","signature","style","artworkZoom","artworkFocus"].forEach(id=>$(id).addEventListener("input",invalidate));["messageEn","messageGu"].forEach(id=>$(id).addEventListener("input",()=>{updateEditorMetrics();invalidate()}));$("artworkZoom").addEventListener("input",()=>{if(artworkImage)render()});$("artworkFocus").addEventListener("input",()=>{if(artworkImage)render()});$("artworkFile").onchange=e=>setArtwork(e.target.files[0]);$("clearArtwork").onclick=()=>clearArtwork(true);$("resetEnglish").onclick=resetEnglish;$("resetGujarati").onclick=resetGujarati;$("saveCustom").onclick=saveCustomMessages;$("restoreOriginal").onclick=restoreOriginal;$("generate").onclick=()=>{render();addHistory();cvs.toBlob(blob=>saveGeneratedImage(blob,{type:"daily",date:$("date").value,occasion:$("occasionEn").value}),"image/png")};$("download").onclick=()=>{if(generatedKey!==key())return invalidate();const a=document.createElement("a");a.download=`${$("date").value}_${$("occasionEn").value.replace(/[^a-z0-9]+/gi,"-")}_EN-GU.png`;a.href=cvs.toDataURL("image/png");a.click()};$("sharePoster").onclick=shareCurrentPoster;$("copyEnglish").onclick=()=>copyText(englishCaption(),"English caption");$("copyGujarati").onclick=()=>copyText(gujaratiCaption(),"Gujarati caption");$("copyBilingual").onclick=()=>copyText(bilingualCaption(),"Bilingual caption");$("exportEdits").onclick=exportUserEdits;$("importEdits").onchange=e=>importUserEdits(e.target.files[0]);$("savePreferences").onclick=savePreferences;$("resetPreferences").onclick=resetPreferences;$("cleanupMode").onchange=saveCleanupMode;$("cleanupNow").onclick=async()=>{const n=await deleteGeneratedImagesOlderThan(7);showToast(`${n} old image(s) deleted`)};$("deleteAllImages").onclick=async()=>{if(confirm("Delete all images stored inside the app?")){await deleteAllGeneratedImages();showToast("All app-stored images deleted")}};$("whyBtn").onclick=()=>$("why").classList.toggle("show");$("favoriteBtn").onclick=toggleFavorite;$("clearHistory").onclick=()=>{store.set("iis-history",[]);renderHistory()};$("runQa").onclick=runDatasetQa;$("exportQa").onclick=exportQa;["search","monthFilter","categoryFilter","contextFilter"].forEach(id=>$(id).addEventListener("input",renderCalendar));document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.screen));applyPreferences();load(getTodayDatasetDate());renderFavorites();renderHistory();populateSettings();loadCleanupSettings();runScheduledCleanup();if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
 function associateLabels(){document.querySelectorAll("label").forEach((label,index)=>{if(label.htmlFor)return;const control=label.querySelector("input,select,textarea,button")||label.parentElement?.querySelector("input,select,textarea,button");if(!control)return;if(!control.id)control.id="label-control-"+index;label.htmlFor=control.id})}
 document.addEventListener("DOMContentLoaded",()=>{associateLabels();init();initGreeting();initContacts();updatePhotoControls()});
 </script>
