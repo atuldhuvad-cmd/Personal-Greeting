@@ -363,6 +363,7 @@ if ('serviceWorker' in navigator) {
 
 const $=id=>document.getElementById(id),cvs=$("poster"),ctx=cvs.getContext("2d");let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false;
 function onEl(id,ev,fn){const el=$(id);if(!el)return false;el.addEventListener(ev,fn);return true}
+function resolveVisibleStyle(name){return STYLES.includes(name)?name:"Auto Theme"}
 function syncStyleChips(){
   const v=$("style")?$("style").value:"";
   document.querySelectorAll("#posterQuickChips .chip").forEach(c=>c.classList.toggle("active",c.dataset.style===v));
@@ -1237,13 +1238,22 @@ function renderGalleryEditorial(p) {
 }
 
 function render() {
+  if(_rendering) return;
+  _rendering=true;
+  try {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.filter = "none";
+  ctx.beginPath();
   ctx.clearRect(0, 0, 1080, 1350);
-  let pName = currentPaletteName || "Vedic Indigo";
+  if(!rec) return;
+  let pName = palette || "Vedic Indigo";
   let styleName = $("style") ? $("style").value : "Auto Theme";
 
-  const ACTIVE_MANUAL = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
-
-  if (styleName === "Auto Theme" || !ACTIVE_MANUAL.includes(styleName)) {
+  if (styleName === "Auto Theme") {
     const auto = getAutoTheme($("date").value);
     styleName = auto.style;
     pName = auto.palette;
@@ -1252,21 +1262,36 @@ function render() {
 
   let fits = { en: { lines: [] } };
   try {
-    if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
-    else if (styleName === "Hero Focus") fits = renderHeroFocus(p);
-    else if (styleName === "Sacred Arch") fits = renderSacredArch(p);
+    if (styleName === "Sacred Arch") fits = renderSacredArch(p);
     else if (styleName === "Cinematic Editorial") fits = renderCinematicEditorial(p);
+    else if (styleName === "Monumental Typography") fits = renderMonumentalTypography(p);
+    else if (styleName === "Poetry Collage") fits = renderPoetryCollage(p);
+    else if (styleName === "Gallery Editorial") fits = renderGalleryEditorial(p);
+    else if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
+    else if (styleName === "Royal Heritage") fits = renderRoyalHeritage(p);
+    else if (styleName === "Classic Inspiration") fits = renderClassic(p);
+    else if (styleName === "Editorial Premium") fits = renderEditorialPremium(p);
+    else if (styleName === "Hero Focus") fits = renderHeroFocus(p);
     else fits = renderGlassmorphic(p);
   } catch (err) {
     console.error("Render error:", err);
-    fits = renderGlassmorphic(p);
+    ctx.fillStyle = "#FFFDF9";
+    ctx.fillRect(0, 0, 1080, 1350);
+    ctx.fillStyle = "#cc0000";
+    ctx.font = "700 28px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("Render Error: " + (err.message || "Unknown"), 540, 675);
   }
 
   const issues = layoutCheck(fits ? fits.en : null, null, $("signature") ? $("signature").value : "");
   generatedKey = key();
   if ($("download")) $("download").disabled = false;
   if ($("sharePoster")) $("sharePoster").disabled = false;
-  if ($("status")) $("status").textContent = "Generated • " + styleName + " • 1080 × 1350";
+  if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1350";
+  syncStyleChips();
+  } finally {
+    _rendering = false;
+  }
 }
 
 function customMap(){return store.get("iis-custom-messages",{})}
@@ -1383,8 +1408,8 @@ async function runScheduledCleanup(){
 }
 
 function preferences(){return store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"})}
-function applyPreferences(){const p=preferences();$("signature").value=p.signature||"Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=STYLES.includes(p.style)?p.style:"Classic Inspiration"}
-function populateSettings(){const p=preferences();$("defaultSignature").value=p.signature||"Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=STYLES.includes(p.style)?p.style:"Classic Inspiration"}
+function applyPreferences(){const p=preferences();$("signature").value=p.signature||"Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=resolveVisibleStyle(p.style)}
+function populateSettings(){const p=preferences();$("defaultSignature").value=p.signature||"Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=resolveVisibleStyle(p.style)}
 function savePreferences(){const p={signature:$("defaultSignature").value.trim()||"Dr. Atul",palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
 function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
 function loadCleanupSettings(){
@@ -1443,7 +1468,7 @@ function getTodayDatasetDate(){
   }
   return DATASET[0].Date;
 }
-function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=STYLES.includes(rec.Style)?rec.Style:"Classic Inspiration";$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
+function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=resolveVisibleStyle(rec.Style);$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
 function syncPalette(){document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.p===palette))}
 function setArtwork(file){if(!file)return;const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);img._url=url;artworkImage=img;artworkId=`${file.name}:${file.size}:${file.lastModified}`;clearNode($("artworkPreview"));const p=document.createElement("img");p.src=url;$("artworkPreview").appendChild(p);$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();render()};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to load this image.")};img.src=url}
 function clearArtwork(doRender=true){if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);artworkImage=null;artworkId="none";$("artworkPreview").textContent="No local artwork selected";$("artworkFile").value="";$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();if(doRender)render()}
