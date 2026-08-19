@@ -178,7 +178,7 @@ details.accordion-item .accordion-body{padding:14px}
 <details class="accordion-item">
   <summary>🎨 Custom Artwork & Color Palette</summary>
   <div class="accordion-body">
-    <div class="field"><label>Premium Semantic Palette</label><div id="palettes" class="palette-grid"></div></div>
+    <div class="field" style="display:none;"><label>Premium Semantic Palette</label><div id="palettes" class="palette-grid"></div></div>
     <div class="artwork-box" style="margin-top:12px">
       <label>Hero Artwork (Custom Photo)</label>
       <div id="artworkPreview" class="artwork-preview">No local artwork gDesign</div>
@@ -853,7 +853,8 @@ function drawMandalaCorner(x, y, scaleX, scaleY, color) {
   ctx.restore();
 }
 
-function renderGlassmorphic(p) {
+function renderGlassmorphic(p_old) {
+  const p = { soft: "#FDFBF7", b: "#FFFFFF", a: "#F4EFE6", gold: "#7A3045", accent: "#7A3045", ink: "#2A2A2A" };
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
@@ -879,20 +880,23 @@ function renderGlassmorphic(p) {
   ctx.fillStyle = hexA("#272421", 0.08);
   ctx.fillRect(0, imgH, 1080, 1);
 
-  ctx.textAlign = "left";
+  const headX = 540;
+  ctx.save();
+  ctx.textAlign = "center";
   ctx.fillStyle = p.date || "#82776D";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 80, imgH + 78);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, imgH + 78);
 
   ctx.fillStyle = p.theme || "#7C3F4B";
   ctx.font = '500 52px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, imgH + 148);
+  ctx.fillText(themeTitle(), headX, imgH + 148);
+  ctx.restore();
 
   ctx.strokeStyle = hexA(p.accent || "#7C3F4B", 0.55);
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(80, imgH + 176);
-  ctx.lineTo(196, imgH + 176);
+  ctx.moveTo(headX - 58, imgH + 176);
+  ctx.lineTo(headX + 58, imgH + 176);
   ctx.stroke();
 
   const en = fitQuote(quote, 920, 520, T.quoteFont, "500", 1.28);
@@ -970,7 +974,8 @@ function renderClassic(p) {
   return { en };
 }
 
-function renderHeroFocus(p) {
+function renderHeroFocus(p_old) {
+  const p = { soft: "#F9F6F0", b: "#EADFD4", a: "#D4C4B7", gold: "#C19A6B", accent: "#A67A53", ink: "#3E281F" };
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
@@ -992,18 +997,21 @@ function renderHeroFocus(p) {
   ctx.fillStyle = band;
   ctx.fillRect(0, imgH, 1080, 1350 - imgH);
 
-  ctx.textAlign = "left";
+  const headX = 540;
+  ctx.save();
+  ctx.textAlign = "center";
   ctx.fillStyle = p.date || "#8B6A52";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 80, imgH + 58);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, imgH + 58);
 
   ctx.fillStyle = p.theme || "#5A3A28";
   ctx.font = '500 50px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, imgH + 116);
+  ctx.fillText(themeTitle(), headX, imgH + 116);
+  ctx.restore();
 
   ctx.strokeStyle = hexA(p.gold || "#C4A574", 0.7);
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(80, imgH + 138); ctx.lineTo(188, imgH + 138); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(headX - 54, imgH + 138); ctx.lineTo(headX + 54, imgH + 138); ctx.stroke();
 
   const quoteMaxH = 1350 - imgH - 210;
   const en = fitQuote(quote, 920, quoteMaxH, T.quoteFont, "500", 1.24);
@@ -1069,7 +1077,8 @@ function renderEditorialPremium(p) {
   return { en };
 }
 
-function renderSacredArch(p) {
+function renderSacredArch(p_old) {
+  const p = { b: "#0F172A", soft: "#FDFBF7", gold: "#C29B62", accent: "#D4AF37", ink: "#FFFFFF", a: "#1E293B" };
   const T = TYPO_PRESETS.D;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
@@ -1090,13 +1099,16 @@ function renderSacredArch(p) {
   ctx.lineWidth = 1.25;
   drawSacredArch(ctx, archX, archY, archW, archH);
   ctx.stroke();
-  ctx.textAlign = "left";
+  const headX = archX + archW / 2;
+  ctx.save();
+  ctx.textAlign = "center";
   ctx.fillStyle = p.date || "#AAA093";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 88, 900);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, 900);
   ctx.fillStyle = p.theme || p.gold || "#C4A36A";
   ctx.font = '500 48px "Cinzel",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 88, 958);
+  ctx.fillText(themeTitle().toUpperCase(), headX, 958);
+  ctx.restore();
   const en = fitQuote(quote, 900, 250, T.quoteFont, "500", 1.24);
   drawLines(en, 88, 1010, p.message || "#F3EBDD", "left", { color: "rgba(8,12,24,0.35)", blur: 8, y: 1 });
   drawQuietSig(88, Math.min(1010 + en.totalHeight + 40, 1296), p.signature || hexA(p.gold || "#C4A36A", 0.9), "left", 'italic 500 28px "Cinzel",Georgia,serif');
@@ -1104,7 +1116,8 @@ function renderSacredArch(p) {
   return { en };
 }
 
-function renderCinematicEditorial(p) {
+function renderCinematicEditorial(p_old) {
+  const p = { b: "#050A15", soft: "#FFFFFF", gold: "#E2D8C0", accent: "#C6B287", ink: "#FFFFFF", a: "#111827" };
   const T = TYPO_PRESETS.B;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
@@ -1122,14 +1135,16 @@ function renderCinematicEditorial(p) {
   ctx.fillStyle = hexA(p.gold || "#C6A76B", 0.82);
   ctx.fillRect(0, 0, 1080, 3);
 
-  ctx.textAlign = "left";
+  ctx.save();
+  ctx.textAlign = "center";
   ctx.fillStyle = p.date || "#A9AFBA";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 64, 86);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 86);
 
   ctx.fillStyle = p.theme || "#F7F5EF";
   ctx.font = '700 52px "Bodoni Moda",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 64, 150);
+  ctx.fillText(themeTitle().toUpperCase(), 540, 150);
+  ctx.restore();
 
   const en = fitQuote(quote, 920, 420, T.quoteFont, "500", 1.18);
   const quoteY = Math.min(1040, Math.max(780, 1288 - en.totalHeight - 86));
