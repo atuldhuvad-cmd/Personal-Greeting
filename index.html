@@ -210,15 +210,9 @@ details.accordion-item .accordion-body{padding:14px}
 <div id="posterQuickChips" class="poster-quick-chips">
 <button class="chip active" data-style="Auto Theme">Auto</button>
 <button class="chip" data-style="Modern Glassmorphic">Glass</button>
-<button class="chip" data-style="Royal Heritage">Heritage</button>
-<button class="chip" data-style="Classic Inspiration">Classic</button>
-<button class="chip" data-style="Editorial Premium">Editorial</button>
 <button class="chip" data-style="Hero Focus">Hero</button>
 <button class="chip" data-style="Sacred Arch">Arch</button>
 <button class="chip" data-style="Cinematic Editorial">Cinematic</button>
-<button class="chip" data-style="Monumental Typography">Monumental</button>
-<button class="chip" data-style="Poetry Collage">Poetry</button>
-<button class="chip" data-style="Gallery Editorial">Gallery</button>
 </div>
 <div class="frame"><canvas id="poster" width="1080" height="1350"></canvas><div id="status" class="status">Loading 365-day dataset…</div></div></section>
 </main>
@@ -534,16 +528,10 @@ function getThemePhotoImage(occ, emotion, cat) {
 // 10 COMPOSITION STYLES + AUTO THEME
 const STYLES = [
   "Auto Theme",
-  "Sacred Arch",
-  "Cinematic Editorial",
-  "Monumental Typography",
-  "Poetry Collage",
-  "Gallery Editorial",
   "Modern Glassmorphic",
-  "Royal Heritage",
-  "Classic Inspiration",
-  "Editorial Premium",
-  "Hero Focus"
+  "Hero Focus",
+  "Sacred Arch",
+  "Cinematic Editorial"
 ];
 
 // 6 SEMANTIC COLOR PALETTES (70% Base, 20% Secondary, 8% Typography, 2% Gold Accent)
@@ -794,10 +782,10 @@ function getAutoTheme(dateStr) {
   }
   hash = Math.abs(hash);
   const paletteKeys = Object.keys(PALETTES);
-  const styleKeys = ["Modern Glassmorphic", "Royal Heritage", "Editorial Premium", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+  const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
   return {
     palette: paletteKeys[hash % paletteKeys.length],
-    style: styleKeys[(hash >> 2) % styleKeys.length]
+    style: activeManualStyles[(hash >> 2) % activeManualStyles.length]
   };
 }
 
@@ -1249,22 +1237,13 @@ function renderGalleryEditorial(p) {
 }
 
 function render() {
-  if(_rendering) return;
-  _rendering=true;
-  try {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = "source-over";
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
-  ctx.filter = "none";
-  ctx.beginPath();
   ctx.clearRect(0, 0, 1080, 1350);
-  if(!rec) return;
-  let pName = palette || "Vedic Indigo";
+  let pName = currentPaletteName || "Vedic Indigo";
   let styleName = $("style") ? $("style").value : "Auto Theme";
 
-  if (styleName === "Auto Theme") {
+  const ACTIVE_MANUAL = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+
+  if (styleName === "Auto Theme" || !ACTIVE_MANUAL.includes(styleName)) {
     const auto = getAutoTheme($("date").value);
     styleName = auto.style;
     pName = auto.palette;
@@ -1273,36 +1252,21 @@ function render() {
 
   let fits = { en: { lines: [] } };
   try {
-    if (styleName === "Sacred Arch") fits = renderSacredArch(p);
-    else if (styleName === "Cinematic Editorial") fits = renderCinematicEditorial(p);
-    else if (styleName === "Monumental Typography") fits = renderMonumentalTypography(p);
-    else if (styleName === "Poetry Collage") fits = renderPoetryCollage(p);
-    else if (styleName === "Gallery Editorial") fits = renderGalleryEditorial(p);
-    else if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
-    else if (styleName === "Royal Heritage") fits = renderRoyalHeritage(p);
-    else if (styleName === "Classic Inspiration") fits = renderClassic(p);
-    else if (styleName === "Editorial Premium") fits = renderEditorialPremium(p);
+    if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
     else if (styleName === "Hero Focus") fits = renderHeroFocus(p);
-    else fits = renderClassic(p);
+    else if (styleName === "Sacred Arch") fits = renderSacredArch(p);
+    else if (styleName === "Cinematic Editorial") fits = renderCinematicEditorial(p);
+    else fits = renderGlassmorphic(p);
   } catch (err) {
     console.error("Render error:", err);
-    ctx.fillStyle = "#FFFDF9";
-    ctx.fillRect(0, 0, 1080, 1350);
-    ctx.fillStyle = "#cc0000";
-    ctx.font = "700 28px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText("Render Error: " + (err.message || "Unknown"), 540, 675);
+    fits = renderGlassmorphic(p);
   }
 
   const issues = layoutCheck(fits ? fits.en : null, null, $("signature") ? $("signature").value : "");
   generatedKey = key();
   if ($("download")) $("download").disabled = false;
   if ($("sharePoster")) $("sharePoster").disabled = false;
-  if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1350";
-  syncStyleChips();
-  } finally {
-    _rendering = false;
-  }
+  if ($("status")) $("status").textContent = "Generated • " + styleName + " • 1080 × 1350";
 }
 
 function customMap(){return store.get("iis-custom-messages",{})}

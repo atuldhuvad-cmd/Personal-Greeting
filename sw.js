@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-monumental-mobile-review-v3";
+const CACHE = "daily-inspiration-v2-3-2-five-compositions-review-v1";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./data/content.js"];
 
 self.addEventListener("install", e => {
