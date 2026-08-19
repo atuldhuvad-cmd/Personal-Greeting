@@ -459,70 +459,45 @@ function fitBox(text, maxW, maxH, startSize = 74, minSize = 42, fontName = "Geor
   };
 }
 
-function drawLines(f,x,y,color,align="center"){ctx.font=f.font;ctx.fillStyle=color;ctx.textAlign=align;f.lines.forEach((line,i)=>ctx.fillText(line,x,y+i*f.lineHeight));return y+f.lines.length*f.lineHeight}
+function drawLines(f,x,y,color,align="center",shadow){ctx.save();ctx.font=f.font;ctx.fillStyle=color;ctx.textAlign=align;if(shadow){ctx.shadowColor=shadow.color||"rgba(0,0,0,0.38)";ctx.shadowBlur=shadow.blur||12;ctx.shadowOffsetY=shadow.y||1;ctx.shadowOffsetX=0}f.lines.forEach((line,i)=>ctx.fillText(line,x,y+i*f.lineHeight));ctx.restore();return y+f.lines.length*f.lineHeight}
 function texture(p){ctx.save();ctx.globalAlpha=.045;for(let y=0;y<1350;y+=9){ctx.fillStyle=y%18===0?p.accent:p.gold;ctx.fillRect(0,y,1080,1)}for(let x=0;x<1080;x+=13){ctx.fillStyle=p.ink;ctx.fillRect(x,0,1,1350)}ctx.restore()}
 function bg(p){const g=ctx.createLinearGradient(0,0,1080,1350);g.addColorStop(0,p.a);g.addColorStop(.48,p.soft);g.addColorStop(1,p.b);ctx.fillStyle=g;ctx.fillRect(0,0,1080,1350);texture(p)}
 function frame(p){ctx.strokeStyle=p.gold;ctx.lineWidth=5;rr(35,35,1010,1280,30);ctx.stroke();ctx.strokeStyle="#ffffff9c";ctx.lineWidth=2;rr(49,49,982,1252,23);ctx.stroke()}
 function hexA(hex,a){const h=String(hex||"#000").replace("#","");const full=h.length===3?h.split("").map(c=>c+c).join(""):h.slice(0,6);const n=parseInt(full,16);if(!isFinite(n))return "rgba(0,0,0,"+a+")";return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")"}
 function sigName(){if(!$("signature"))return "Dr. Atul";return $("signature").value.trim();}
 function themeTitle(){return ($("occasionEn")&&$("occasionEn").value.trim())||""}
-function editorialDate(){const d=new Date(($("date")?$("date").value:"")+"T00:00:00");if(isNaN(d.getTime()))return{line:"",compact:"",month:"",day:"",year:"",weekday:""};const mon=d.toLocaleDateString("en-US",{month:"short"}).toUpperCase();const day=String(d.getDate()).padStart(2,"0");const wd=d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase();const year=String(d.getFullYear());return{line:mon+" "+day+"  •  "+wd,compact:day+" / "+String(d.getMonth()+1).padStart(2,"0")+" / "+year,month:mon,day,year,weekday:wd}}
+function editorialDate(){const d=new Date(($("date")?$("date").value:"")+"T00:00:00");if(isNaN(d.getTime()))return{line:"",full:"",compact:"",month:"",day:"",year:"",weekday:""};const mon=d.toLocaleDateString("en-US",{month:"short"}).toUpperCase();const day=String(d.getDate()).padStart(2,"0");const wd=d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase();const year=String(d.getFullYear());const full=d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}).toUpperCase();return{line:mon+" "+day+"  •  "+wd,full,compact:day+" / "+String(d.getMonth()+1).padStart(2,"0")+" / "+year,month:mon,day,year,weekday:wd}}
 function quoteScaleRange(text){const words=(text||"").trim().split(/\s+/).filter(Boolean).length;if(words<=5)return{start:110,min:78};if(words<=15)return{start:88,min:66};if(words<=30)return{start:72,min:54};return{start:60,min:42}}
 function fitQuote(text,maxW,maxH,fontName,weight="500",spacing=1.22){const r=quoteScaleRange(text);const areaCap=Math.max(r.min,Math.min(r.start,Math.round(maxH/1.35)));return fitBox(text,maxW,maxH,areaCap,r.min,fontName,weight,spacing)}
 const HERO_WORDS=["KINDNESS","COURAGE","HOPE","GRATITUDE","BELIEVE","RISE","PEACE","WISDOM","LOVE","STRENGTH","FAITH","LIGHT","LEARNING","COMPASSION"];
 function heroKeyword(){const t=(themeTitle()+" "+currentEnglishMessage()).toUpperCase();for(const w of HERO_WORDS){if(t.includes(w))return w}const occ=themeTitle().replace(/\s+day$/i,"").trim().split(/\s+/)[0]||"HOPE";return occ.toUpperCase().slice(0,14)}
-function resolveHeroImage(){if(artworkImage&&(artworkImage.naturalWidth||artworkImage.width)>0)return{img:artworkImage,zoom:Number($("artworkZoom").value)||1,focus:Number($("artworkFocus").value)||0};const themeImg=getThemePhotoImage(rec?rec.Occasion_English:"",rec?(rec.Emotion||rec.Visual_Mood):"",rec?rec.Category:"");if(themeImg&&themeImg.complete&&themeImg.naturalWidth>0)return{img:themeImg,zoom:1,focus:0};return{img:null,zoom:1,focus:0}}
+function posterThemeBlob(){return [themeTitle(),typeof currentEnglishMessage==="function"?currentEnglishMessage():"",rec&&rec.Occasion_English,rec&&(rec.Emotion||rec.Visual_Mood),rec&&rec.Category].filter(Boolean).join(" ")}
+function classifyThemeFamily(blob){const title=(themeTitle()||"").toLowerCase();const t=String(blob||"").toLowerCase();if(/\b(kindness|compassion|family|gratitude)\b/.test(title))return "kindness";if(/\b(courage|resilience|purpose)\b/.test(title))return "courage";if(/\b(wisdom|learning|education)\b/.test(title))return "wisdom";if(/\b(peace|faith|spiritual|reflection|meditation)\b/.test(title))return "peace";if(/\b(kindness|compassion|family|gratitude)\b/.test(t))return "kindness";if(/\b(courage|resilience|purpose)\b/.test(t))return "courage";if(/\b(wisdom|learning|education|knowledge)\b/.test(t))return "wisdom";if(/\b(peace|faith|spiritual|meditation|mindful|balance)\b/.test(t))return "peace";if(/\b(festival|diwali|dhanteras|holi|navratri)\b/.test(t))return "festival";if(/\b(strength|victory|determination)\b/.test(t)&&!/\bkindness\b/.test(t))return "courage";if(/\b(love|friend)\b/.test(t))return "kindness";if(/\b(nature|forest|tree)\b/.test(t))return "nature";return "kindness"}
+function pickThemePhotoSrc(styleName){const family=classifyThemeFamily(posterThemeBlob());const style=styleName||_activePosterStyle;const PHOTO={kindness:"artwork/BuiltIn/theme-kindness.jpg",wisdom:"artwork/BuiltIn/theme-wisdom.jpg",courage:"artwork/BuiltIn/theme-courage.jpg",festival:"artwork/BuiltIn/theme-festival.jpg",nature:"artwork/BuiltIn/theme-kindness.jpg"};if(style==="Modern Glassmorphic"){if(family==="wisdom")return PHOTO.wisdom;if(family==="courage")return PHOTO.courage;return PHOTO.kindness}if(style==="Hero Focus"){if(family==="courage")return PHOTO.courage;if(family==="festival")return PHOTO.festival;if(family==="peace")return PHOTO.kindness;return PHOTO.wisdom}if(style==="Sacred Arch"){if(family==="wisdom")return PHOTO.wisdom;if(family==="courage")return PHOTO.courage;if(family==="festival")return PHOTO.festival;return PHOTO.kindness}if(style==="Cinematic Editorial"){if(family==="kindness"||family==="peace")return PHOTO.kindness;if(family==="wisdom")return PHOTO.wisdom;if(family==="festival")return PHOTO.festival;return PHOTO.courage}return PHOTO.kindness}
+function compositionCrop(){const family=classifyThemeFamily(posterThemeBlob());const style=_activePosterStyle;if(style==="Modern Glassmorphic"){if(family==="courage")return{zoom:1.08,focus:0.1,focusX:0.04};if(family==="wisdom")return{zoom:1.1,focus:-0.02,focusX:0.08};return{zoom:1.08,focus:0.22,focusX:0.02}}if(style==="Hero Focus"){if(family==="courage")return{zoom:1.16,focus:0.1,focusX:0.05};if(family==="festival")return{zoom:1.14,focus:0.16,focusX:0};return{zoom:1.22,focus:0,focusX:-0.42}}if(style==="Sacred Arch"){if(family==="courage")return{zoom:1.12,focus:-0.1,focusX:0.08};if(family==="wisdom")return{zoom:1.1,focus:-0.12,focusX:0.04};return{zoom:1.1,focus:-0.08,focusX:0.1}}if(style==="Cinematic Editorial"){if(family==="kindness"||family==="peace")return{zoom:1.18,focus:-0.12,focusX:0.22};if(family==="wisdom")return{zoom:1.22,focus:0.04,focusX:0.12};return{zoom:1.22,focus:0.04,focusX:0.08}}return{zoom:1.1,focus:0,focusX:0}}
+function resolveHeroImage(){if(artworkImage&&(artworkImage.naturalWidth||artworkImage.width)>0)return{img:artworkImage,zoom:Number($("artworkZoom").value)||1,focus:Number($("artworkFocus").value)||0};const themeImg=getThemePhotoImage();if(themeImg&&themeImg.complete&&themeImg.naturalWidth>0)return{img:themeImg,zoom:1,focus:0};return{img:null,zoom:1,focus:0}}
 function drawGrain(x,y,w,h,alpha=0.035){ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle="#1a120c";for(let i=0;i<220;i++){ctx.fillRect(x+((i*97)%w),y+((i*53)%h),1.15,1.15)}ctx.restore()}
 function drawVignette(x,y,w,h,strength=0.28){const g=ctx.createRadialGradient(x+w/2,y+h/2,Math.min(w,h)*0.22,x+w/2,y+h/2,Math.max(w,h)*0.72);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(8,6,4,"+strength+")");ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}
 function coverDraw(img,x,y,w,h,zoom=1,focus=0,focusX=0){if(!img)return;const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;if(!iw||!ih||!w||!h||!isFinite(w)||!isFinite(h))return;const z=Number(zoom);const f=Number(focus);const fx=Number(focusX);const safeZoom=(isFinite(z)&&z>0)?z:1;const safeFocus=isFinite(f)?f:0;const safeFocusX=isFinite(fx)?fx:0;const base=Math.max(w/iw,h/ih)*safeZoom;if(!isFinite(base)||base<=0)return;const sw=w/base,sh=h/base;let sx=(iw-sw)/2+safeFocusX*(iw-sw)/2,sy=(ih-sh)/2+safeFocus*(ih-sh)/2;sx=Math.max(0,Math.min(iw-sw,sx));sy=Math.max(0,Math.min(ih-sh,sy));ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h)}
-function drawImageFill(p,x,y,w,h,opts={}){ctx.save();if(opts.radius){rr(x,y,w,h,opts.radius);ctx.clip()}else{ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip()}const hero=resolveHeroImage();const zoom=(opts.zoom||1)*hero.zoom;const focus=(opts.focus!=null)?opts.focus:hero.focus;const focusX=opts.focusX||0;if(hero.img){coverDraw(hero.img,x,y,w,h,zoom,focus,focusX)}else{const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,p.b);g.addColorStop(1,p.a);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);generatedHero(p,x,y,w,h)}if(opts.treatment)applyImageTreatment(opts.treatment,x,y,w,h);if(opts.duotone){ctx.fillStyle=hexA(opts.duotone,0.22);ctx.fillRect(x,y,w,h)}if(opts.vignette)drawVignette(x,y,w,h,opts.vignette);if(opts.fadeBottom){const g=ctx.createLinearGradient(x,y+h*(1-opts.fadeBottom),x,y+h);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,opts.fadeColor||"rgba(8,8,12,0.88)");ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}if(opts.fadeLeft){const g=ctx.createLinearGradient(x,y,x+w*opts.fadeLeft,y);g.addColorStop(0,opts.fadeColor||"rgba(8,8,12,0.82)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}if(opts.grain)drawGrain(x,y,w,h,opts.grain);ctx.restore()}
+function treatmentFilter(name){if(name==="Quiet Matte")return "saturate(0.58) contrast(0.92) sepia(0.16) brightness(1.03)";if(name==="Warm Lifestyle")return "saturate(0.94) contrast(0.97) sepia(0.14) brightness(1.05)";if(name==="Sacred Atmosphere")return "saturate(0.8) contrast(1.05) brightness(0.95)";if(name==="Cinematic Grade")return "saturate(0.48) contrast(1.16) brightness(0.94)";return ""}
+function drawImageFill(p,x,y,w,h,opts={}){ctx.save();if(opts.radius){rr(x,y,w,h,opts.radius);ctx.clip()}else{ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip()}const hero=resolveHeroImage();const zoom=(opts.zoom||1)*hero.zoom;const focus=(opts.focus!=null)?opts.focus:hero.focus;const focusX=opts.focusX||0;const filt=opts.filter||treatmentFilter(opts.treatment);if(filt)ctx.filter=filt;if(hero.img){coverDraw(hero.img,x,y,w,h,zoom,focus,focusX)}else{const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,p.b);g.addColorStop(1,p.a);ctx.fillStyle=g;ctx.fillRect(x,y,w,h);generatedHero(p,x,y,w,h)}ctx.filter="none";if(opts.treatment)applyImageTreatment(opts.treatment,x,y,w,h);if(opts.duotone){ctx.fillStyle=hexA(opts.duotone,0.22);ctx.fillRect(x,y,w,h)}if(opts.vignette)drawVignette(x,y,w,h,opts.vignette);if(opts.fadeBottom){const g=ctx.createLinearGradient(x,y+h*(1-opts.fadeBottom),x,y+h);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,opts.fadeColor||"rgba(8,8,12,0.88)");ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}if(opts.fadeLeft){const g=ctx.createLinearGradient(x,y,x+w*opts.fadeLeft,y);g.addColorStop(0,opts.fadeColor||"rgba(8,8,12,0.82)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(x,y,w,h)}if(opts.grain)drawGrain(x,y,w,h,opts.grain);ctx.restore()}
 function drawQuietBrand(x,y,color,align="left"){ctx.save();ctx.globalAlpha=0.55;ctx.textAlign=align;ctx.fillStyle=color;ctx.font='600 11px "Manrope",sans-serif';ctx.fillText("INDIA INSPIRATION STUDIO",x,y);ctx.restore()}
-function drawQuietSig(x,y,color,align="right",font){ctx.textAlign=align;ctx.fillStyle=color;ctx.font=font||'italic 500 26px "Cormorant Garamond",Georgia,serif';ctx.fillText(sigName(),x,y)}
+function drawQuietSig(x,y,color,align="right",font){const s=sigName();if(!s)return;ctx.textAlign=align;ctx.fillStyle=color;ctx.font=font||'italic 500 26px "Cormorant Garamond",Georgia,serif';ctx.fillText(s,x,y)}
 
 
-const THEME_PHOTO_MAP = {
-  "kindness": "artwork/BuiltIn/theme-kindness.jpg",
-  "compassion": "artwork/BuiltIn/theme-kindness.jpg",
-  "peace": "artwork/BuiltIn/theme-kindness.jpg",
-  "love": "artwork/BuiltIn/theme-kindness.jpg",
-  "wisdom": "artwork/BuiltIn/theme-wisdom.jpg",
-  "learning": "artwork/BuiltIn/theme-wisdom.jpg",
-  "education": "artwork/BuiltIn/theme-wisdom.jpg",
-  "courage": "artwork/BuiltIn/theme-courage.jpg",
-  "strength": "artwork/BuiltIn/theme-courage.jpg",
-  "victory": "artwork/BuiltIn/theme-courage.jpg",
-  "nature": "artwork/BuiltIn/theme-nature.jpg",
-  "green": "artwork/BuiltIn/theme-nature.jpg",
-  "festival": "artwork/BuiltIn/theme-festival.jpg",
-  "diwali": "artwork/BuiltIn/theme-festival.jpg",
-  "light": "artwork/BuiltIn/theme-festival.jpg"
-};
 const THEME_PHOTO_CACHE = {};
+let _activePosterStyle = "Modern Glassmorphic";
 
-function getThemePhotoImage(occ, emotion, cat) {
-  const key = `${occ}_${emotion}_${cat}`.toLowerCase();
-  for (const t in THEME_PHOTO_MAP) {
-    if (key.includes(t)) {
-      const src = THEME_PHOTO_MAP[t];
-      if (!THEME_PHOTO_CACHE[src]) {
-        const img = new Image();
-        img.onload = () => { if (typeof rec !== "undefined" && rec) render(); };
-        img.onerror = () => { img._failed = true; if (typeof rec !== "undefined" && rec) render(); };
-        img.src = src;
-        THEME_PHOTO_CACHE[src] = img;
-      }
-      return THEME_PHOTO_CACHE[src];
-    }
-  }
-  const defSrc = "artwork/BuiltIn/theme-kindness.jpg";
-  if (!THEME_PHOTO_CACHE[defSrc]) {
+function getThemePhotoImage() {
+  const src = pickThemePhotoSrc(_activePosterStyle);
+  if (!THEME_PHOTO_CACHE[src]) {
     const img = new Image();
     img.onload = () => { if (typeof rec !== "undefined" && rec) render(); };
     img.onerror = () => { img._failed = true; if (typeof rec !== "undefined" && rec) render(); };
-    img.src = defSrc;
-    THEME_PHOTO_CACHE[defSrc] = img;
+    img.src = src;
+    THEME_PHOTO_CACHE[src] = img;
   }
-  return THEME_PHOTO_CACHE[defSrc];
+  return THEME_PHOTO_CACHE[src];
 }
 
 
@@ -588,13 +563,18 @@ function drawTornPaper(ctx, x, y, w, h) {
 // CANVAS NON-DESTRUCTIVE IMAGE FILTERS & JAALI BACKGROUND
 function drawBackgroundJaali(ctx) {
   ctx.save();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
-  ctx.lineWidth = 1.5;
-  for (let x = 0; x < 1080; x += 90) {
-    for (let y = 0; y < 1350; y += 90) {
-      ctx.strokeRect(x, y, 90, 90);
+  const glow = ctx.createRadialGradient(540, 180, 30, 540, 520, 980);
+  glow.addColorStop(0, "rgba(196,163,106,0.09)");
+  glow.addColorStop(0.42, "rgba(24,33,61,0)");
+  glow.addColorStop(1, "rgba(8,12,24,0.42)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.strokeStyle = "rgba(196, 163, 106, 0.045)";
+  ctx.lineWidth = 1;
+  for (let x = 40; x < 1080; x += 220) {
+    for (let y = 40; y < 1350; y += 220) {
       ctx.beginPath();
-      ctx.arc(x + 45, y + 45, 30, 0, Math.PI * 2);
+      ctx.arc(x, y, 46, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
@@ -602,12 +582,55 @@ function drawBackgroundJaali(ctx) {
 }
 
 function isLightColor(hex){const h=String(hex||"#000").replace("#","");const full=h.length===3?h.split("").map(c=>c+c).join(""):h.slice(0,6);const n=parseInt(full,16);if(!isFinite(n))return false;const r=(n>>16)&255,g=(n>>8)&255,b=n&255;return (0.299*r+0.587*g+0.114*b)>168}
+function hexRgb(hex){const h=String(hex||"#000").replace("#","");const full=h.length===3?h.split("").map(c=>c+c).join(""):h.slice(0,6);const n=parseInt(full,16);if(!isFinite(n))return [0,0,0];return [(n>>16)&255,(n>>8)&255,n&255]}
+function mixHex(a,b,t){const A=hexRgb(a),B=hexRgb(b);const m=Math.max(0,Math.min(1,Number(t)||0));return "#"+[0,1,2].map(i=>Math.round(A[i]+(B[i]-A[i])*m).toString(16).padStart(2,"0")).join("")}
 function paperInk(p){return isLightColor(p.ink)?(p.secondary||"#241814"):p.ink}
 function photoInk(p){return isLightColor(p.ink)?p.ink:"#F4EFE6"}
+function composeArtPalette(styleName, userP) {
+  const u = userP || PALETTES["Vedic Indigo"];
+  if (styleName === "Modern Glassmorphic") {
+    const burgundy = mixHex("#7C3F4B", u.accent || "#7C3F4B", 0.08);
+    return { b: "#EAE3D7", a: "#F3EFE7", soft: "#F3EFE7", secondary: "#272421", accent: burgundy, gold: burgundy, ink: "#272421", date: "#82776D", theme: burgundy, message: "#272421", signature: mixHex("#7C3F4B", "#82776D", 0.28), paper: "#F3EFE7", parchment: "#EAE3D7" };
+  }
+  if (styleName === "Hero Focus") {
+    const caramel = mixHex("#C4A574", u.gold || u.accent || "#C4A574", 0.1);
+    return { b: "#F4E6D0", a: "#FBF6EE", soft: "#F4E6D0", secondary: "#3D2A1F", accent: "#5A3A28", gold: caramel, ink: "#3D2A1F", date: "#8B6A52", theme: "#5A3A28", message: "#3D2A1F", signature: "#B08958", paper: "#FBF6EE", parchment: "#F4E6D0" };
+  }
+  if (styleName === "Sacred Arch") {
+    const gold = mixHex("#C4A36A", u.gold || "#C4A36A", 0.14);
+    return { b: "#18213D", a: "#11182B", soft: "#F3EBDD", secondary: "#11182B", accent: gold, gold, ink: "#F3EBDD", date: "#AAA093", theme: gold, message: "#F3EBDD", signature: mixHex("#C4A36A", "#AAA093", 0.22) };
+  }
+  if (styleName === "Cinematic Editorial") {
+    const champagne = mixHex("#C6A76B", u.gold || "#C6A76B", 0.08);
+    return { b: "#0B1020", a: "#151D38", soft: "#F7F5EF", secondary: "#0B1020", accent: champagne, gold: champagne, ink: "#F7F5EF", date: "#A9AFBA", theme: "#F7F5EF", message: "#F7F5EF", signature: mixHex("#C6A76B", "#A9AFBA", 0.28) };
+  }
+  return u;
+}
 function applyImageTreatment(treatment, x, y, w, h) {
   ctx.save();
-  if (treatment === "Warm Film") {
-    ctx.fillStyle = "rgba(235, 185, 120, 0.12)";
+  if (treatment === "Warm Film" || treatment === "Warm Lifestyle") {
+    ctx.fillStyle = "rgba(232, 186, 118, 0.14)";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "rgba(255, 244, 228, 0.06)";
+    ctx.fillRect(x, y, w, h);
+  } else if (treatment === "Quiet Matte") {
+    ctx.fillStyle = "rgba(243, 239, 231, 0.16)";
+    ctx.fillRect(x, y, w, h);
+    ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = "rgba(90, 78, 68, 0.06)";
+    ctx.fillRect(x, y, w, h);
+  } else if (treatment === "Sacred Atmosphere") {
+    ctx.fillStyle = "rgba(17, 24, 43, 0.16)";
+    ctx.fillRect(x, y, w, h);
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.fillStyle = "rgba(196, 163, 106, 0.14)";
+    ctx.fillRect(x, y, w, h);
+  } else   if (treatment === "Cinematic Grade") {
+    ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = "rgba(11, 16, 32, 0.28)";
+    ctx.fillRect(x, y, w, h);
+    ctx.globalCompositeOperation = "overlay";
+    ctx.fillStyle = "rgba(18, 26, 52, 0.16)";
     ctx.fillRect(x, y, w, h);
   } else if (treatment === "Spiritual Indigo") {
     ctx.fillStyle = "rgba(24, 36, 72, 0.18)";
@@ -776,8 +799,16 @@ function layoutCheck(en, gu, sig) {
 }
 
 function getAutoTheme(dateStr) {
-  const rec = getRecord(dateStr);
-  const theme = rec && rec.en && rec.en.theme ? rec.en.theme.toLowerCase() : "";
+  const record = (typeof DATASET !== "undefined" && Array.isArray(DATASET))
+    ? (DATASET.find(x => x.Date === dateStr) || rec)
+    : rec;
+  const theme = [
+    record && record.Occasion_English,
+    record && (record.Emotion || record.Visual_Mood),
+    record && record.Category,
+    record && record.Message_English,
+    themeTitle()
+  ].filter(Boolean).join(" ").toLowerCase();
   let hash = 0;
   for (let i = 0; i < (dateStr || "").length; i++) {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
@@ -785,11 +816,11 @@ function getAutoTheme(dateStr) {
   }
   hash = Math.abs(hash);
   const paletteKeys = Object.keys(PALETTES);
-  
+
   let styleName = "Hero Focus";
   if (theme.includes("kindness") || theme.includes("family") || theme.includes("gratitude") || theme.includes("love") || theme.includes("compassion")) {
     styleName = hash % 2 === 0 ? "Hero Focus" : "Modern Glassmorphic";
-  } else if (theme.includes("wisdom") || theme.includes("reflection") || theme.includes("spiritual") || theme.includes("peace") || theme.includes("balance") || theme.includes("mindfulness")) {
+  } else if (theme.includes("wisdom") || theme.includes("reflection") || theme.includes("spiritual") || theme.includes("peace") || theme.includes("balance") || theme.includes("mindfulness") || theme.includes("faith")) {
     styleName = hash % 2 === 0 ? "Sacred Arch" : "Modern Glassmorphic";
   } else if (theme.includes("courage") || theme.includes("strength") || theme.includes("resilience") || theme.includes("determination") || theme.includes("purpose") || theme.includes("focus") || theme.includes("action")) {
     styleName = hash % 2 === 0 ? "Cinematic Editorial" : "Hero Focus";
@@ -797,7 +828,7 @@ function getAutoTheme(dateStr) {
     const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
     styleName = activeManualStyles[(hash >> 2) % activeManualStyles.length];
   }
-  
+
   return {
     palette: paletteKeys[hash % paletteKeys.length],
     style: styleName
@@ -826,39 +857,49 @@ function renderGlassmorphic(p) {
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const p_ink = paperInk(p);
+  const paper = p.paper || "#F3EFE7";
+  const parchment = p.parchment || "#EAE3D7";
 
-  ctx.fillStyle = p.soft;
+  ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.02);
+  const wash = ctx.createLinearGradient(0, 0, 0, 1350);
+  wash.addColorStop(0, paper);
+  wash.addColorStop(1, parchment);
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, 1080, 1350);
+  drawGrain(0, 0, 1080, 1350, 0.018);
 
-  const imgW = 420;
-  const imgH = 960;
-  const imgX = 580;
-  const imgY = 100;
-
-  drawImageFill(p, imgX, imgY, imgW, imgH, {
-    zoom: 1.15, focus: 0.1, focusX: 0.2,
-    treatment: "Warm Film", vignette: 0.1, grain: 0.03
+  const imgH = 486;
+  const crop = compositionCrop();
+  drawImageFill(p, 0, 0, 1080, imgH, {
+    zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
+    treatment: "Quiet Matte", vignette: 0.08, grain: 0.02
   });
 
+  ctx.fillStyle = hexA("#272421", 0.08);
+  ctx.fillRect(0, imgH, 1080, 1);
+
   ctx.textAlign = "left";
-  ctx.fillStyle = "#7C7067";
+  ctx.fillStyle = p.date || "#82776D";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText(dt.line.toUpperCase(), 80, 180);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 80, imgH + 78);
 
-  ctx.fillStyle = p.accent;
+  ctx.fillStyle = p.theme || "#7C3F4B";
   ctx.font = '500 52px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 80, 240);
+  ctx.fillText(themeTitle(), 80, imgH + 148);
 
-  const maxQuoteW = 440;
-  const en = fitBox(quote, maxQuoteW, 540, 72, 58, T.quoteFont, "500", 1.25);
-  const quoteY = 320;
-  drawLines(en, 80, quoteY, p_ink, "left");
+  ctx.strokeStyle = hexA(p.accent || "#7C3F4B", 0.55);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(80, imgH + 176);
+  ctx.lineTo(196, imgH + 176);
+  ctx.stroke();
 
-  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1260), hexA(p.accent, 0.7), "left", 'italic 500 24px "Cormorant Garamond",Georgia,serif');
-  drawQuietBrand(1000, 1280, hexA(p_ink, 0.4), "right");
-  
+  const en = fitQuote(quote, 920, 520, T.quoteFont, "500", 1.28);
+  drawLines(en, 80, imgH + 230, p.message || "#272421", "left");
+
+  drawQuietSig(80, Math.min(imgH + 230 + en.totalHeight + 46, 1264), p.signature || "#7C3F4B", "left", 'italic 500 26px "Cormorant Garamond",Georgia,serif');
+  drawQuietBrand(1000, 1292, hexA(p.date || "#82776D", 0.9), "right");
   return { en };
 }
 
@@ -933,39 +974,44 @@ function renderHeroFocus(p) {
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
+  const band = p.parchment || "#F4E6D0";
+  const isLong = (quote || "").length > 115;
+  const imgH = isLong ? 780 : 880;
+  const crop = compositionCrop();
 
-  ctx.fillStyle = p.soft;
+  ctx.fillStyle = band;
   ctx.fillRect(0, 0, 1080, 1350);
 
-  const imgH = 920;
   drawImageFill(p, 0, 0, 1080, imgH, {
-    zoom: 1.18, focus: 0.06, focusX: -0.24,
-    treatment: "Warm Film", vignette: 0.15,
-    grain: 0.03
+    zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
+    treatment: "Warm Lifestyle", vignette: 0.06,
+    fadeBottom: 0.2, fadeColor: "rgba(244,230,208,0.97)",
+    grain: 0.04
   });
 
-  const p_ink = paperInk(p);
-
-  ctx.fillStyle = p.soft;
+  ctx.fillStyle = band;
   ctx.fillRect(0, imgH, 1080, 1350 - imgH);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = hexA(p_ink, 0.45);
+  ctx.fillStyle = p.date || "#8B6A52";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText(dt.line.toUpperCase(), 80, imgH + 60);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 80, imgH + 58);
 
-  ctx.fillStyle = p.accent;
+  ctx.fillStyle = p.theme || "#5A3A28";
   ctx.font = '500 50px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 80, imgH + 120);
+  ctx.fillText(themeTitle(), 80, imgH + 116);
 
-  const en = fitBox(quote, 920, 180, 68, 56, T.quoteFont, "500", 1.2);
-  const quoteY = imgH + 170;
-  
-  drawLines(en, 80, quoteY, p_ink, "left");
+  ctx.strokeStyle = hexA(p.gold || "#C4A574", 0.7);
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, imgH + 138); ctx.lineTo(188, imgH + 138); ctx.stroke();
 
-  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1300), hexA(p.gold, 0.8), "left", 'italic 500 26px "Cormorant Garamond",Georgia,serif');
-  drawQuietBrand(1000, 1300, hexA(p_ink, 0.4), "right");
+  const quoteMaxH = 1350 - imgH - 210;
+  const en = fitQuote(quote, 920, quoteMaxH, T.quoteFont, "500", 1.24);
+  const quoteY = imgH + 176;
+  drawLines(en, 80, quoteY, p.message || "#3D2A1F", "left");
 
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1296), p.signature || "#B08958", "left", 'italic 500 26px "Cormorant Garamond",Georgia,serif');
+  drawQuietBrand(1000, 1310, hexA(p.date || "#8B6A52", 0.9), "right");
   return { en };
 }
 
@@ -1027,31 +1073,34 @@ function renderSacredArch(p) {
   const T = TYPO_PRESETS.D;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const ink = photoInk(p);
-  ctx.fillStyle = p.b;
+  ctx.fillStyle = "#11182B";
   ctx.fillRect(0, 0, 1080, 1350);
   drawBackgroundJaali(ctx);
   const archX = 70, archY = 36, archW = 940, archH = 820;
+  const crop = compositionCrop();
   ctx.save();
   drawSacredArch(ctx, archX, archY, archW, archH);
   ctx.clip();
-  drawImageFill(p, archX, archY, archW, archH, { zoom: 1.12, focus: -0.04, focusX: 0.1, treatment: "Indigo Shadow", vignette: 0.22, grain: 0.02 });
+  drawImageFill(p, archX, archY, archW, archH, {
+    zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
+    treatment: "Sacred Atmosphere", vignette: 0.16, grain: 0.018
+  });
   ctx.restore();
-  ctx.strokeStyle = hexA(p.gold, 0.55);
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = hexA(p.gold || "#C4A36A", 0.62);
+  ctx.lineWidth = 1.25;
   drawSacredArch(ctx, archX, archY, archW, archH);
   ctx.stroke();
   ctx.textAlign = "left";
-  ctx.fillStyle = hexA(ink, 0.45);
+  ctx.fillStyle = p.date || "#AAA093";
   ctx.font = '600 32px "Inter",sans-serif';
-  ctx.fillText(dt.line.toUpperCase(), 88, 890);
-  ctx.fillStyle = p.gold;
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 88, 900);
+  ctx.fillStyle = p.theme || p.gold || "#C4A36A";
   ctx.font = '500 48px "Cinzel",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 88, 950);
-  const en = fitBox(quote, 900, 260, 66, 54, T.quoteFont, "500", 1.24);
-  drawLines(en, 88, 1000, "#FDFBF7", "left");
-  drawQuietSig(88, Math.min(1000 + en.totalHeight + 40, 1296), hexA(p.gold, 0.85), "left", 'italic 500 28px "Cinzel",Georgia,serif');
-  drawQuietBrand(992, 1312, hexA(ink, 0.7), "right");
+  ctx.fillText(themeTitle().toUpperCase(), 88, 958);
+  const en = fitQuote(quote, 900, 250, T.quoteFont, "500", 1.24);
+  drawLines(en, 88, 1010, p.message || "#F3EBDD", "left", { color: "rgba(8,12,24,0.35)", blur: 8, y: 1 });
+  drawQuietSig(88, Math.min(1010 + en.totalHeight + 40, 1296), p.signature || hexA(p.gold || "#C4A36A", 0.9), "left", 'italic 500 28px "Cinzel",Georgia,serif');
+  drawQuietBrand(992, 1312, hexA(p.date || "#AAA093", 0.85), "right");
   return { en };
 }
 
@@ -1060,34 +1109,33 @@ function renderCinematicEditorial(p) {
   const dt = editorialDate();
   const quote = currentEnglishMessage();
 
-  // Cool Indigo Film Campaign Treatment (Slate navy monochrome tonality, high contrast, dramatic directional fade)
+  ctx.fillStyle = "#0B1020";
+  ctx.fillRect(0, 0, 1080, 1350);
+  const crop = compositionCrop();
   drawImageFill(p, 0, 0, 1080, 1350, {
-    zoom: 1.24, focus: 0.14, focusX: 0.35,
-    treatment: "Indigo Shadow", vignette: 0.42, fadeBottom: 0.68,
-    fadeColor: "rgba(6, 10, 20, 0.96)", grain: 0.028
+    zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
+    treatment: "Cinematic Grade", vignette: 0.2,
+    fadeBottom: 0.44, fadeColor: "rgba(11, 16, 32, 0.72)",
+    grain: 0.03
   });
 
-  // Metallic Gold Top Line
-  ctx.fillStyle = hexA(p.gold, 0.85);
-  ctx.fillRect(0, 0, 1080, 4);
+  ctx.fillStyle = hexA(p.gold || "#C6A76B", 0.82);
+  ctx.fillRect(0, 0, 1080, 3);
 
-  // High-End Campaign Header
   ctx.textAlign = "left";
-  ctx.fillStyle = "#AEB3BD";
-  ctx.font = '700 30px "Inter",sans-serif';
-  ctx.fillText("CAMPAIGN EDITION // " + dt.year, 64, 80);
+  ctx.fillStyle = p.date || "#A9AFBA";
+  ctx.font = '600 32px "Inter",sans-serif';
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 64, 86);
 
-  ctx.fillStyle = p.gold;
+  ctx.fillStyle = p.theme || "#F7F5EF";
   ctx.font = '700 52px "Bodoni Moda",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 64, 140);
+  ctx.fillText(themeTitle().toUpperCase(), 64, 150);
 
-  const en = fitBox(quote, 920, 420, 72, 56, T.quoteFont, "500", 1.18);
-  const quoteY = Math.min(1020, Math.max(760, 1284 - en.totalHeight - 80));
-
-  // Crisp Pure White Quote Text
-  drawLines(en, 64, quoteY, "#FFFFFF", "left");
-  drawQuietSig(64, Math.min(quoteY + en.totalHeight + 36, 1306), hexA(p.gold, 0.55), "left", 'italic 500 24px "Bodoni Moda",Georgia,serif');
-  drawQuietBrand(1016, 1318, "rgba(220, 230, 245, 0.45)", "right");
+  const en = fitQuote(quote, 920, 420, T.quoteFont, "500", 1.18);
+  const quoteY = Math.min(1040, Math.max(780, 1288 - en.totalHeight - 86));
+  drawLines(en, 64, quoteY, p.message || "#F7F5EF", "left", { color: "rgba(6,10,20,0.55)", blur: 14, y: 2 });
+  drawQuietSig(64, Math.min(quoteY + en.totalHeight + 38, 1306), p.signature || hexA(p.gold || "#C6A76B", 0.85), "left", 'italic 500 24px "Bodoni Moda",Georgia,serif');
+  drawQuietBrand(1016, 1318, "rgba(169, 175, 186, 0.7)", "right");
   return { en };
 }
 
@@ -1259,7 +1307,9 @@ function render() {
     styleName = auto.style;
     pName = auto.palette;
   }
-  const p = PALETTES[pName] || PALETTES["Vedic Indigo"];
+  _activePosterStyle = styleName;
+  const userP = PALETTES[pName] || PALETTES["Vedic Indigo"];
+  const p = composeArtPalette(styleName, userP);
 
   let fits = { en: { lines: [] } };
   try {
