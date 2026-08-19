@@ -854,12 +854,12 @@ function drawMandalaCorner(x, y, scaleX, scaleY, color) {
 }
 
 function renderGlassmorphic(p_old) {
-  const p = { soft: "#FDFBF7", b: "#FFFFFF", a: "#F4EFE6", gold: "#7A3045", accent: "#7A3045", ink: "#2A2A2A" };
+  const p = { soft: "#ECE5DA", b: "#F3EFE7", a: "#EAE3D7", gold: "#7A3045", accent: "#7A3045", ink: "#2A2A2A" };
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const paper = p.paper || "#F3EFE7";
-  const parchment = p.parchment || "#EAE3D7";
+  const paper = "#F3EFE7";
+  const parchment = "#ECE5DA";
 
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1080, 1350);
@@ -876,9 +876,6 @@ function renderGlassmorphic(p_old) {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Quiet Matte", vignette: 0.08, grain: 0.02
   });
-
-  ctx.fillStyle = hexA("#272421", 0.08);
-  ctx.fillRect(0, imgH, 1080, 1);
 
   const headX = 540;
   ctx.save();
