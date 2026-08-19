@@ -209,8 +209,8 @@ details.accordion-item .accordion-body{padding:14px}
 <section class="preview">
 <div id="posterQuickChips" class="poster-quick-chips">
 <button class="chip active" data-style="Auto Theme">Auto</button>
-<button class="chip" data-style="Modern Glassmorphic">Glass</button>
-<button class="chip" data-style="Hero Focus">Hero</button>
+<button class="chip" data-style="Modern Glassmorphic">Minimal</button>
+<button class="chip" data-style="Hero Focus">Human</button>
 <button class="chip" data-style="Sacred Arch">Arch</button>
 <button class="chip" data-style="Cinematic Editorial">Cinematic</button>
 </div>
@@ -776,6 +776,8 @@ function layoutCheck(en, gu, sig) {
 }
 
 function getAutoTheme(dateStr) {
+  const rec = getRecord(dateStr);
+  const theme = rec && rec.en && rec.en.theme ? rec.en.theme.toLowerCase() : "";
   let hash = 0;
   for (let i = 0; i < (dateStr || "").length; i++) {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
@@ -783,10 +785,22 @@ function getAutoTheme(dateStr) {
   }
   hash = Math.abs(hash);
   const paletteKeys = Object.keys(PALETTES);
-  const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+  
+  let styleName = "Hero Focus";
+  if (theme.includes("kindness") || theme.includes("family") || theme.includes("gratitude") || theme.includes("love") || theme.includes("compassion")) {
+    styleName = hash % 2 === 0 ? "Hero Focus" : "Modern Glassmorphic";
+  } else if (theme.includes("wisdom") || theme.includes("reflection") || theme.includes("spiritual") || theme.includes("peace") || theme.includes("balance") || theme.includes("mindfulness")) {
+    styleName = hash % 2 === 0 ? "Sacred Arch" : "Modern Glassmorphic";
+  } else if (theme.includes("courage") || theme.includes("strength") || theme.includes("resilience") || theme.includes("determination") || theme.includes("purpose") || theme.includes("focus") || theme.includes("action")) {
+    styleName = hash % 2 === 0 ? "Cinematic Editorial" : "Hero Focus";
+  } else {
+    const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+    styleName = activeManualStyles[(hash >> 2) % activeManualStyles.length];
+  }
+  
   return {
     palette: paletteKeys[hash % paletteKeys.length],
-    style: activeManualStyles[(hash >> 2) % activeManualStyles.length]
+    style: styleName
   };
 }
 
@@ -812,54 +826,39 @@ function renderGlassmorphic(p) {
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const ink = "#181512";
+  const p_ink = paperInk(p);
 
-  // 100% Full-Bleed Dominant Photographic Background
-  drawImageFill(p, 0, 0, 1080, 1350, { zoom: 1.14, focus: -0.1, focusX: -0.22, treatment: "Warm Film", vignette: 0.18, grain: 0.025 });
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, 0, 1080, 1350);
+  drawGrain(0, 0, 1080, 1350, 0.02);
 
-  // Atmospheric Light Field & Edge Diffusion (Light mist overlay, NO rectangular card boundary!)
-  const haze = ctx.createLinearGradient(0, 480, 0, 1350);
-  haze.addColorStop(0, "rgba(255, 255, 255, 0)");
-  haze.addColorStop(0.35, "rgba(255, 255, 255, 0.45)");
-  haze.addColorStop(0.7, "rgba(255, 255, 255, 0.84)");
-  haze.addColorStop(1, "rgba(255, 255, 255, 0.96)");
-  ctx.fillStyle = haze;
-  ctx.fillRect(0, 480, 1080, 870);
+  const imgW = 420;
+  const imgH = 960;
+  const imgX = 580;
+  const imgY = 100;
 
-  // Soft Radial Light Bloom at center
-  const bloom = ctx.createRadialGradient(540, 1020, 50, 540, 1020, 500);
-  bloom.addColorStop(0, "rgba(255, 255, 255, 0.35)");
-  bloom.addColorStop(1, "rgba(255, 255, 255, 0)");
-  ctx.fillStyle = bloom;
-  ctx.fillRect(0, 520, 1080, 830);
+  drawImageFill(p, imgX, imgY, imgW, imgH, {
+    zoom: 1.15, focus: 0.1, focusX: 0.2,
+    treatment: "Warm Film", vignette: 0.1, grain: 0.03
+  });
 
-  // Minimal Top Metadata
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
-  ctx.font = '600 12px "Manrope",sans-serif';
-  ctx.fillText(dt.line, 80, 68);
+  ctx.fillStyle = hexA(p_ink, 0.55);
+  ctx.font = '600 12px "Inter",sans-serif';
+  ctx.fillText(dt.line, 80, 180);
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-  ctx.font = '500 20px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, 96);
+  ctx.fillStyle = hexA(p_ink, 0.85);
+  ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
+  ctx.fillText(themeTitle(), 80, 208);
 
-  // Larger Editorial Quote (No card container, floating over atmospheric mist)
-  const en = fitQuote(quote, 920, 400, T.quoteFont, "500", 1.22);
-  const quoteY = Math.min(1080, Math.max(780, 1280 - en.totalHeight - 70));
+  const maxQuoteW = 440;
+  const en = fitQuote(quote, maxQuoteW, 600, T.quoteFont, "500", 1.25);
+  const quoteY = 320;
+  drawLines(en, 80, quoteY, p_ink, "left");
 
-  // Thin Accent Hairline Line
-  ctx.strokeStyle = hexA(p.gold, 0.65);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(80, quoteY - 24);
-  ctx.lineTo(160, quoteY - 24);
-  ctx.stroke();
-
-  // Crisp Dark Ink Quote Text over Light Mist
-  drawLines(en, 80, quoteY, ink, "left");
-
-  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 36, 1308), p.accent, "left");
-  drawQuietBrand(1000, 1316, hexA(ink, 0.55), "right");
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1260), p.accent, "left", 'italic 500 24px "Cormorant Garamond",Georgia,serif');
+  drawQuietBrand(1000, 1280, hexA(p_ink, 0.4), "right");
+  
   return { en };
 }
 
@@ -935,36 +934,38 @@ function renderHeroFocus(p) {
   const dt = editorialDate();
   const quote = currentEnglishMessage();
 
-  // Warm Lifestyle Intimacy Treatment (Golden hour sunlight, amber skin tones, soft vignette)
-  drawImageFill(p, 0, 0, 1080, 1350, {
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, 0, 1080, 1350);
+
+  const imgH = 920;
+  drawImageFill(p, 0, 0, 1080, imgH, {
     zoom: 1.18, focus: 0.06, focusX: -0.24,
-    treatment: "Warm Film", vignette: 0.28, fadeBottom: 0.65,
-    fadeColor: "rgba(28, 18, 14, 0.92)", grain: 0.03
+    treatment: "Warm Film", vignette: 0.15,
+    grain: 0.03
   });
 
-  // Soft Ambient Sunburst Glow top-left
-  const sun = ctx.createRadialGradient(120, 100, 10, 120, 100, 360);
-  sun.addColorStop(0, "rgba(255, 220, 180, 0.22)");
-  sun.addColorStop(1, "rgba(255, 220, 180, 0)");
-  ctx.fillStyle = sun;
-  ctx.fillRect(0, 0, 1080, 600);
+  const p_ink = paperInk(p);
+
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, imgH, 1080, 1350 - imgH);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(255, 245, 235, 0.65)";
-  ctx.font = '600 12px "Manrope",sans-serif';
-  ctx.fillText(dt.line, 64, 64);
+  ctx.fillStyle = hexA(p_ink, 0.55);
+  ctx.font = '600 12px "Inter",sans-serif';
+  ctx.fillText(dt.line, 80, imgH + 70);
 
-  ctx.fillStyle = "rgba(255, 245, 235, 0.88)";
+  ctx.fillStyle = hexA(p_ink, 0.85);
   ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 64, 92);
+  ctx.fillText(themeTitle(), 80, imgH + 98);
 
-  const en = fitQuote(quote, 940, 430, T.quoteFont, "500", 1.2);
-  const quoteY = Math.min(1040, Math.max(740, 1290 - en.totalHeight - 86));
+  const en = fitQuote(quote, 920, 200, T.quoteFont, "500", 1.2);
+  const quoteY = imgH + 140;
+  
+  drawLines(en, 80, quoteY, p_ink, "left");
 
-  // Soft Warm Off-White Quote Text
-  drawLines(en, 64, quoteY, "#FDFBF7", "left");
-  drawQuietSig(64, Math.min(quoteY + en.totalHeight + 38, 1308), hexA(p.gold, 0.92), "left", 'italic 500 24px "Cormorant Garamond",Georgia,serif');
-  drawQuietBrand(1016, 1318, "rgba(255, 245, 235, 0.48)", "right");
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1300), p.accent, "left");
+  drawQuietBrand(1000, 1300, hexA(p_ink, 0.4), "right");
+
   return { en };
 }
 

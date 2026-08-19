@@ -1,0 +1,22 @@
+{
+  "version": "Daily Inspiration v2.3 FINAL RELEASE",
+  "release_date": "2026-08-04",
+  "approval_status": "Approved — source-level QA approved; manual mobile visual and PNG tests confirmed passed",
+  "git_branch": "main",
+  "source_commit": "d2693e008fca2dbd43d3acda8a825d77f275fa31",
+  "tag": "v2.3.0 (annotated)",
+  "remote": "https://github.com/atuldhuvad-cmd/Personal-Greeting.git",
+  "push_status": "NOT PUSHED — GitHub credentials unavailable in this environment; commit and tag exist locally, ready to push",
+  "sha256": {
+    "App/index.html": "b3f209939cd0c97d8a4423da571d64648e8420000530e925d5578938bd13eb47",
+    "App/sw.js": "8e5cfc9933018cb7486b9629266c07f4518cfe357cf37abe5718ff4e35798ec2",
+    "App/manifest.webmanifest": "16a6f5cc8abeeb2ef7357b38b4f46ab6f9b16ab1d18d833e39526dea7c813697",
+    "App/assets/icon-192.svg": "38ae5fa183a2d0c384f72b666073d5d608a68a40eea8f21cabf9087bedc5583d",
+    "App/assets/icon-512.svg": "da626f3ebe2805a8ab8e2cc858a76c4d52c5af348f35304cc6c2ee92892b5ce2",
+    "App/data/India_Inspiration_Studio_2026_365_Day_Content_v0_6.csv": "318e32246572c9d23ce0cfe28773dc6b18bb34b6184378f502a632392efa8f93"
+  },
+  "cache_name": "daily-inspiration-v2-3-final",
+  "dataset_count": 365,
+  "approved_template_count": 9,
+  "composition_count": 3
+}

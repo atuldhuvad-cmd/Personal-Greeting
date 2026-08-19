@@ -209,8 +209,8 @@ details.accordion-item .accordion-body{padding:14px}
 <section class="preview">
 <div id="posterQuickChips" class="poster-quick-chips">
 <button class="chip active" data-style="Auto Theme">Auto</button>
-<button class="chip" data-style="Modern Glassmorphic">Glass</button>
-<button class="chip" data-style="Hero Focus">Hero</button>
+<button class="chip" data-style="Modern Glassmorphic">Minimal</button>
+<button class="chip" data-style="Hero Focus">Human</button>
 <button class="chip" data-style="Sacred Arch">Arch</button>
 <button class="chip" data-style="Cinematic Editorial">Cinematic</button>
 </div>
@@ -363,6 +363,7 @@ if ('serviceWorker' in navigator) {
 
 const $=id=>document.getElementById(id),cvs=$("poster"),ctx=cvs.getContext("2d");let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false;
 function onEl(id,ev,fn){const el=$(id);if(!el)return false;el.addEventListener(ev,fn);return true}
+function resolveVisibleStyle(name){return STYLES.includes(name)?name:"Auto Theme"}
 function syncStyleChips(){
   const v=$("style")?$("style").value:"";
   document.querySelectorAll("#posterQuickChips .chip").forEach(c=>c.classList.toggle("active",c.dataset.style===v));
@@ -775,6 +776,8 @@ function layoutCheck(en, gu, sig) {
 }
 
 function getAutoTheme(dateStr) {
+  const rec = getRecord(dateStr);
+  const theme = rec && rec.en && rec.en.theme ? rec.en.theme.toLowerCase() : "";
   let hash = 0;
   for (let i = 0; i < (dateStr || "").length; i++) {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
@@ -782,10 +785,22 @@ function getAutoTheme(dateStr) {
   }
   hash = Math.abs(hash);
   const paletteKeys = Object.keys(PALETTES);
-  const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+  
+  let styleName = "Hero Focus";
+  if (theme.includes("kindness") || theme.includes("family") || theme.includes("gratitude") || theme.includes("love") || theme.includes("compassion")) {
+    styleName = hash % 2 === 0 ? "Hero Focus" : "Modern Glassmorphic";
+  } else if (theme.includes("wisdom") || theme.includes("reflection") || theme.includes("spiritual") || theme.includes("peace") || theme.includes("balance") || theme.includes("mindfulness")) {
+    styleName = hash % 2 === 0 ? "Sacred Arch" : "Modern Glassmorphic";
+  } else if (theme.includes("courage") || theme.includes("strength") || theme.includes("resilience") || theme.includes("determination") || theme.includes("purpose") || theme.includes("focus") || theme.includes("action")) {
+    styleName = hash % 2 === 0 ? "Cinematic Editorial" : "Hero Focus";
+  } else {
+    const activeManualStyles = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
+    styleName = activeManualStyles[(hash >> 2) % activeManualStyles.length];
+  }
+  
   return {
     palette: paletteKeys[hash % paletteKeys.length],
-    style: activeManualStyles[(hash >> 2) % activeManualStyles.length]
+    style: styleName
   };
 }
 
@@ -811,54 +826,39 @@ function renderGlassmorphic(p) {
   const T = TYPO_PRESETS.A;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const ink = "#181512";
+  const p_ink = paperInk(p);
 
-  // 100% Full-Bleed Dominant Photographic Background
-  drawImageFill(p, 0, 0, 1080, 1350, { zoom: 1.14, focus: -0.1, focusX: -0.22, treatment: "Warm Film", vignette: 0.18, grain: 0.025 });
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, 0, 1080, 1350);
+  drawGrain(0, 0, 1080, 1350, 0.02);
 
-  // Atmospheric Light Field & Edge Diffusion (Light mist overlay, NO rectangular card boundary!)
-  const haze = ctx.createLinearGradient(0, 480, 0, 1350);
-  haze.addColorStop(0, "rgba(255, 255, 255, 0)");
-  haze.addColorStop(0.35, "rgba(255, 255, 255, 0.45)");
-  haze.addColorStop(0.7, "rgba(255, 255, 255, 0.84)");
-  haze.addColorStop(1, "rgba(255, 255, 255, 0.96)");
-  ctx.fillStyle = haze;
-  ctx.fillRect(0, 480, 1080, 870);
+  const imgW = 420;
+  const imgH = 960;
+  const imgX = 580;
+  const imgY = 100;
 
-  // Soft Radial Light Bloom at center
-  const bloom = ctx.createRadialGradient(540, 1020, 50, 540, 1020, 500);
-  bloom.addColorStop(0, "rgba(255, 255, 255, 0.35)");
-  bloom.addColorStop(1, "rgba(255, 255, 255, 0)");
-  ctx.fillStyle = bloom;
-  ctx.fillRect(0, 520, 1080, 830);
+  drawImageFill(p, imgX, imgY, imgW, imgH, {
+    zoom: 1.15, focus: 0.1, focusX: 0.2,
+    treatment: "Warm Film", vignette: 0.1, grain: 0.03
+  });
 
-  // Minimal Top Metadata
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
-  ctx.font = '600 12px "Manrope",sans-serif';
-  ctx.fillText(dt.line, 80, 68);
+  ctx.fillStyle = hexA(p_ink, 0.55);
+  ctx.font = '600 12px "Inter",sans-serif';
+  ctx.fillText(dt.line, 80, 180);
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-  ctx.font = '500 20px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, 96);
+  ctx.fillStyle = hexA(p_ink, 0.85);
+  ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
+  ctx.fillText(themeTitle(), 80, 208);
 
-  // Larger Editorial Quote (No card container, floating over atmospheric mist)
-  const en = fitQuote(quote, 920, 400, T.quoteFont, "500", 1.22);
-  const quoteY = Math.min(1080, Math.max(780, 1280 - en.totalHeight - 70));
+  const maxQuoteW = 440;
+  const en = fitQuote(quote, maxQuoteW, 600, T.quoteFont, "500", 1.25);
+  const quoteY = 320;
+  drawLines(en, 80, quoteY, p_ink, "left");
 
-  // Thin Accent Hairline Line
-  ctx.strokeStyle = hexA(p.gold, 0.65);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(80, quoteY - 24);
-  ctx.lineTo(160, quoteY - 24);
-  ctx.stroke();
-
-  // Crisp Dark Ink Quote Text over Light Mist
-  drawLines(en, 80, quoteY, ink, "left");
-
-  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 36, 1308), p.accent, "left");
-  drawQuietBrand(1000, 1316, hexA(ink, 0.55), "right");
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1260), p.accent, "left", 'italic 500 24px "Cormorant Garamond",Georgia,serif');
+  drawQuietBrand(1000, 1280, hexA(p_ink, 0.4), "right");
+  
   return { en };
 }
 
@@ -934,36 +934,38 @@ function renderHeroFocus(p) {
   const dt = editorialDate();
   const quote = currentEnglishMessage();
 
-  // Warm Lifestyle Intimacy Treatment (Golden hour sunlight, amber skin tones, soft vignette)
-  drawImageFill(p, 0, 0, 1080, 1350, {
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, 0, 1080, 1350);
+
+  const imgH = 920;
+  drawImageFill(p, 0, 0, 1080, imgH, {
     zoom: 1.18, focus: 0.06, focusX: -0.24,
-    treatment: "Warm Film", vignette: 0.28, fadeBottom: 0.65,
-    fadeColor: "rgba(28, 18, 14, 0.92)", grain: 0.03
+    treatment: "Warm Film", vignette: 0.15,
+    grain: 0.03
   });
 
-  // Soft Ambient Sunburst Glow top-left
-  const sun = ctx.createRadialGradient(120, 100, 10, 120, 100, 360);
-  sun.addColorStop(0, "rgba(255, 220, 180, 0.22)");
-  sun.addColorStop(1, "rgba(255, 220, 180, 0)");
-  ctx.fillStyle = sun;
-  ctx.fillRect(0, 0, 1080, 600);
+  const p_ink = paperInk(p);
+
+  ctx.fillStyle = p.soft;
+  ctx.fillRect(0, imgH, 1080, 1350 - imgH);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(255, 245, 235, 0.65)";
-  ctx.font = '600 12px "Manrope",sans-serif';
-  ctx.fillText(dt.line, 64, 64);
+  ctx.fillStyle = hexA(p_ink, 0.55);
+  ctx.font = '600 12px "Inter",sans-serif';
+  ctx.fillText(dt.line, 80, imgH + 70);
 
-  ctx.fillStyle = "rgba(255, 245, 235, 0.88)";
+  ctx.fillStyle = hexA(p_ink, 0.85);
   ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 64, 92);
+  ctx.fillText(themeTitle(), 80, imgH + 98);
 
-  const en = fitQuote(quote, 940, 430, T.quoteFont, "500", 1.2);
-  const quoteY = Math.min(1040, Math.max(740, 1290 - en.totalHeight - 86));
+  const en = fitQuote(quote, 920, 200, T.quoteFont, "500", 1.2);
+  const quoteY = imgH + 140;
+  
+  drawLines(en, 80, quoteY, p_ink, "left");
 
-  // Soft Warm Off-White Quote Text
-  drawLines(en, 64, quoteY, "#FDFBF7", "left");
-  drawQuietSig(64, Math.min(quoteY + en.totalHeight + 38, 1308), hexA(p.gold, 0.92), "left", 'italic 500 24px "Cormorant Garamond",Georgia,serif');
-  drawQuietBrand(1016, 1318, "rgba(255, 245, 235, 0.48)", "right");
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1300), p.accent, "left");
+  drawQuietBrand(1000, 1300, hexA(p_ink, 0.4), "right");
+
   return { en };
 }
 
@@ -1237,13 +1239,22 @@ function renderGalleryEditorial(p) {
 }
 
 function render() {
+  if(_rendering) return;
+  _rendering=true;
+  try {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.filter = "none";
+  ctx.beginPath();
   ctx.clearRect(0, 0, 1080, 1350);
-  let pName = currentPaletteName || "Vedic Indigo";
+  if(!rec) return;
+  let pName = palette || "Vedic Indigo";
   let styleName = $("style") ? $("style").value : "Auto Theme";
 
-  const ACTIVE_MANUAL = ["Modern Glassmorphic", "Hero Focus", "Sacred Arch", "Cinematic Editorial"];
-
-  if (styleName === "Auto Theme" || !ACTIVE_MANUAL.includes(styleName)) {
+  if (styleName === "Auto Theme") {
     const auto = getAutoTheme($("date").value);
     styleName = auto.style;
     pName = auto.palette;
@@ -1252,21 +1263,36 @@ function render() {
 
   let fits = { en: { lines: [] } };
   try {
-    if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
-    else if (styleName === "Hero Focus") fits = renderHeroFocus(p);
-    else if (styleName === "Sacred Arch") fits = renderSacredArch(p);
+    if (styleName === "Sacred Arch") fits = renderSacredArch(p);
     else if (styleName === "Cinematic Editorial") fits = renderCinematicEditorial(p);
+    else if (styleName === "Monumental Typography") fits = renderMonumentalTypography(p);
+    else if (styleName === "Poetry Collage") fits = renderPoetryCollage(p);
+    else if (styleName === "Gallery Editorial") fits = renderGalleryEditorial(p);
+    else if (styleName === "Modern Glassmorphic") fits = renderGlassmorphic(p);
+    else if (styleName === "Royal Heritage") fits = renderRoyalHeritage(p);
+    else if (styleName === "Classic Inspiration") fits = renderClassic(p);
+    else if (styleName === "Editorial Premium") fits = renderEditorialPremium(p);
+    else if (styleName === "Hero Focus") fits = renderHeroFocus(p);
     else fits = renderGlassmorphic(p);
   } catch (err) {
     console.error("Render error:", err);
-    fits = renderGlassmorphic(p);
+    ctx.fillStyle = "#FFFDF9";
+    ctx.fillRect(0, 0, 1080, 1350);
+    ctx.fillStyle = "#cc0000";
+    ctx.font = "700 28px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("Render Error: " + (err.message || "Unknown"), 540, 675);
   }
 
   const issues = layoutCheck(fits ? fits.en : null, null, $("signature") ? $("signature").value : "");
   generatedKey = key();
   if ($("download")) $("download").disabled = false;
   if ($("sharePoster")) $("sharePoster").disabled = false;
-  if ($("status")) $("status").textContent = "Generated • " + styleName + " • 1080 × 1350";
+  if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1350";
+  syncStyleChips();
+  } finally {
+    _rendering = false;
+  }
 }
 
 function customMap(){return store.get("iis-custom-messages",{})}
@@ -1383,8 +1409,8 @@ async function runScheduledCleanup(){
 }
 
 function preferences(){return store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"})}
-function applyPreferences(){const p=preferences();$("signature").value=p.signature||"Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=STYLES.includes(p.style)?p.style:"Classic Inspiration"}
-function populateSettings(){const p=preferences();$("defaultSignature").value=p.signature||"Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=STYLES.includes(p.style)?p.style:"Classic Inspiration"}
+function applyPreferences(){const p=preferences();$("signature").value=p.signature||"Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=resolveVisibleStyle(p.style)}
+function populateSettings(){const p=preferences();$("defaultSignature").value=p.signature||"Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=resolveVisibleStyle(p.style)}
 function savePreferences(){const p={signature:$("defaultSignature").value.trim()||"Dr. Atul",palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
 function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
 function loadCleanupSettings(){
@@ -1443,7 +1469,7 @@ function getTodayDatasetDate(){
   }
   return DATASET[0].Date;
 }
-function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=STYLES.includes(rec.Style)?rec.Style:"Classic Inspiration";$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
+function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=resolveVisibleStyle(rec.Style);$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
 function syncPalette(){document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.p===palette))}
 function setArtwork(file){if(!file)return;const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);img._url=url;artworkImage=img;artworkId=`${file.name}:${file.size}:${file.lastModified}`;clearNode($("artworkPreview"));const p=document.createElement("img");p.src=url;$("artworkPreview").appendChild(p);$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();render()};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to load this image.")};img.src=url}
 function clearArtwork(doRender=true){if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);artworkImage=null;artworkId="none";$("artworkPreview").textContent="No local artwork selected";$("artworkFile").value="";$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();if(doRender)render()}
