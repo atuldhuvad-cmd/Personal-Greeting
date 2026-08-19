@@ -597,6 +597,12 @@ function fillPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadCap, restC
   }
   return laid;
 }
+function isShortPosterQuote(text) {
+  const t = String(text || "").trim();
+  if (!t) return true;
+  const words = t.split(/\s+/).filter(Boolean).length;
+  return words <= 16 && t.length <= 90;
+}
 function drawCenteredQuoteBlocks(blocks, x, y, ink, accent) {
   let cy = y;
   blocks.forEach((b, idx) => {
@@ -1241,9 +1247,23 @@ function renderHeroFocus(p_old) {
   const quoteY = imgH + 128;
   // Safety margin: reserve 60px for signature + brand at bottom
   const quoteMaxH = 1288 - quoteY - 60;
-  // Human dynamic fitting: preferred 48px lead, cap at 52px, minimum ~30px
-  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.24, 1.32);
+  // Short quotes: keep preferred 48/38 sizes (no fillPhraseQuote upscale or leading grow).
+  // Normal/long quotes: unchanged dynamic fit with 52/48 caps.
+  const laid = isShortPosterQuote(quote)
+    ? layoutPhraseQuote(quote, 900, quoteMaxH, 48, 38, serif, serif, "700", "600", false, false, 1.24, 1.32)
+    : fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.24, 1.32);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
+  window.__posterQuoteMetrics = {
+    style: "Hero Focus",
+    isShort: isShortPosterQuote(quote),
+    leadSize: laid.blocks[0] ? laid.blocks[0].size : 0,
+    restSize: (laid.blocks.find(b => !b.isLead) || laid.blocks[0] || {}).size || 0,
+    leadLh: laid.blocks[0] ? laid.blocks[0].lh : 0,
+    total: laid.total,
+    quoteY: quoteY,
+    quoteMaxH: quoteMaxH,
+    bottom: cy
+  };
 
   drawQuietSig(540, Math.min(cy + 24, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
   drawQuietBrand(1000, 1314, hexA(brown, 0.7), "right");
@@ -1378,8 +1398,26 @@ function renderSacredArch(p_old) {
   const quoteMaxH = 1262 - quoteStartY; // leave ~88px for sig+brand
   // Arch dynamic fitting: preferred 46px, min 32px, tighter line-height
   const en = fitBox(quote, 930, Math.min(quoteMaxH, 400), 46, 32, T.quoteFont, "600", 1.18);
-  drawLines(en, 75, quoteStartY, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
-  drawQuietSig(75, Math.min(quoteStartY + en.totalHeight + 24, 1288), sunrise, "left", 'italic 500 26px "Cinzel",Georgia,serif');
+  // Short quotes: rebalance the quote block in the lower message area.
+  // Normal/long quotes stay top-anchored (unchanged).
+  let drawY = quoteStartY;
+  if (isShortPosterQuote(quote)) {
+    const slack = Math.max(0, quoteMaxH - en.totalHeight);
+    drawY = Math.round(quoteStartY + slack * 0.46);
+    drawY = Math.max(quoteStartY, Math.min(drawY, quoteStartY + slack));
+  }
+  drawLines(en, 75, drawY, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
+  window.__posterQuoteMetrics = {
+    style: "Sacred Arch",
+    isShort: isShortPosterQuote(quote),
+    drawY: drawY,
+    quoteStartY: quoteStartY,
+    quoteMaxH: quoteMaxH,
+    totalHeight: en.totalHeight,
+    fontSize: en.fontSize,
+    bottom: drawY + en.totalHeight
+  };
+  drawQuietSig(75, Math.min(drawY + en.totalHeight + 24, 1288), sunrise, "left", 'italic 500 26px "Cinzel",Georgia,serif');
   drawQuietBrand(992, 1312, hexA(ivory, 0.7), "right");
   return { en };
 }
