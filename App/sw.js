@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-neon-glow-fix-v2";
+const CACHE = "daily-inspiration-v2-3-2-neon-visible-fix-v3";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./data/content.js"];
 
 self.addEventListener("install", e => {
