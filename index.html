@@ -600,7 +600,7 @@ function fillPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadCap, restC
 function drawCenteredQuoteBlocks(blocks, x, y, ink, accent) {
   let cy = y;
   blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== blocks[idx - 1].isLead) cy += 20;
+    if (idx && b.isLead !== blocks[idx - 1].isLead) cy += 8;
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
@@ -754,7 +754,7 @@ function drawBackgroundJaali(ctx) {
   glow.addColorStop(1, "rgba(10,14,36,0.52)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 1080, 1350);
-  ctx.strokeStyle = "rgba(214, 174, 98, 0.08)";
+  ctx.strokeStyle = "rgba(214, 174, 98, 0.025)";
   ctx.lineWidth = 1;
   for (let x = 40; x < 1080; x += 220) {
     for (let y = 40; y < 1350; y += 220) {
@@ -1203,7 +1203,8 @@ function renderHeroFocus(p_old) {
   const family = classifyThemeFamily(posterThemeBlob());
   const themeColor = family === "peace" || family === "wisdom" ? teal : (family === "courage" ? orange : coral);
   const isLong = (quote || "").length > 115;
-  const imgH = isLong ? 540 : 568;
+  // Photo ~40% max; tighter lower fade so cream text area is more dominant
+  const imgH = isLong ? 510 : 535;
   const crop = compositionCrop();
   const p = { b: cream, a: "#FFE8C8", soft: cream };
   const serif = '"Playfair Display",Georgia,serif';
@@ -1214,7 +1215,7 @@ function renderHeroFocus(p_old) {
   drawImageFill(p, 0, 0, 1080, imgH, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Vibrant Daylight", vignette: 0.08,
-    fadeBottom: 0.22, fadeColor: "rgba(255,242,222,0.98)",
+    fadeBottom: 0.30, fadeColor: "rgba(255,242,222,0.98)",
     grain: 0.02
   });
 
@@ -1225,7 +1226,7 @@ function renderHeroFocus(p_old) {
   ctx.textAlign = "center";
   ctx.fillStyle = brown;
   ctx.font = '700 24px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, imgH + 52);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, imgH + 48);
   const theme = themeTitle();
   let themeSize = 42;
   ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
@@ -1234,17 +1235,17 @@ function renderHeroFocus(p_old) {
     ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
   }
   ctx.fillStyle = themeColor;
-  ctx.fillText(theme.toUpperCase(), 540, imgH + 108);
+  ctx.fillText(theme.toUpperCase(), 540, imgH + 100);
   ctx.restore();
 
-  const quoteY = imgH + 156;
-  // Safety margin: reserve 60px for signature + brand at bottom (was 44)
+  const quoteY = imgH + 128;
+  // Safety margin: reserve 60px for signature + brand at bottom
   const quoteMaxH = 1288 - quoteY - 60;
-  // Human dynamic fitting: preferred 48px lead, cap at 52px, minimum ~30px via layoutPhraseQuote
-  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.28, 1.36);
+  // Human dynamic fitting: preferred 48px lead, cap at 52px, minimum ~30px
+  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.24, 1.32);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
 
-  drawQuietSig(540, Math.min(cy + 36, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
+  drawQuietSig(540, Math.min(cy + 24, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
   drawQuietBrand(1000, 1314, hexA(brown, 0.7), "right");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: Math.max(40, cy - quoteY), fontSize: laid.blocks[0] ? laid.blocks[0].size : 38 } };
 }
@@ -1317,7 +1318,9 @@ function renderSacredArch(p_old) {
   ctx.fillStyle = indigo;
   ctx.fillRect(0, 0, 1080, 1350);
   drawBackgroundJaali(ctx);
-  const archX = 70, archY = 24, archW = 940, archH = 620;
+  // Arch ~38% of canvas (500px / 1350 ≈ 37%)
+  const archX = 70, archY = 24, archW = 940, archH = 500;
+  const archBottom = archY + archH; // y=524
   const crop = compositionCrop();
   ctx.save();
   drawSacredArch(ctx, archX, archY, archW, archH);
@@ -1326,7 +1329,7 @@ function renderSacredArch(p_old) {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Sacred Sunrise", vignette: 0.12, grain: 0.014
   });
-  const sun = ctx.createRadialGradient(archX + archW * 0.52, archY + archH * 0.28, 36, archX + archW / 2, archY + archH * 0.55, archW * 0.72);
+  const sun = ctx.createRadialGradient(archX + archW * 0.52, archY + archH * 0.28, 30, archX + archW / 2, archY + archH * 0.55, archW * 0.65);
   sun.addColorStop(0, "rgba(239,138,69,0.38)");
   sun.addColorStop(0.38, "rgba(214,174,98,0.16)");
   sun.addColorStop(1, "rgba(23,32,74,0.18)");
@@ -1342,34 +1345,41 @@ function renderSacredArch(p_old) {
   ctx.stroke();
   resetDrawState();
 
-  ctx.strokeStyle = hexA(turquoise, 0.45);
+  ctx.strokeStyle = hexA(turquoise, 0.35);
   ctx.lineWidth = 1;
   drawSacredArch(ctx, archX + 10, archY + 10, archW - 20, archH - 16);
   ctx.stroke();
 
+  // Compact date/theme block immediately below arch
   const headX = archX + archW / 2;
+  const dateY = archBottom + 42;   // was fixed 702
+  const dividerY = dateY + 16;
+  const themeY = dividerY + 38;    // compact — was fixed 768
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = hexA(ivory, 0.82);
-  ctx.font = '600 26px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, 702);
-  ctx.fillStyle = hexA(turquoise, 0.7);
-  ctx.fillRect(headX - 36, 718, 72, 1.5);
+  ctx.fillStyle = hexA(ivory, 0.78);
+  ctx.font = '600 23px "Inter",sans-serif';
+  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, dateY);
+  ctx.fillStyle = hexA(turquoise, 0.55);
+  ctx.fillRect(headX - 32, dividerY, 64, 1.5);
   ctx.fillStyle = gold;
-  ctx.font = '600 38px "Cinzel",Georgia,serif';
+  ctx.font = '600 36px "Cinzel",Georgia,serif';
   const theme = themeTitle().toUpperCase();
-  let ts = 38;
-  while (ctx.measureText(theme).width > 900 && ts > 24) {
+  let ts = 36;
+  while (ctx.measureText(theme).width > 900 && ts > 22) {
     ts -= 2;
     ctx.font = '600 ' + ts + 'px "Cinzel",Georgia,serif';
   }
-  ctx.fillText(theme, headX, 768);
+  ctx.fillText(theme, headX, themeY);
   ctx.restore();
 
-  // Arch dynamic fitting: preferred start 48px, min 34px, height 370px (820+370=1190, leaves ~98px for sig+brand)
-  const en = fitBox(quote, 920, 370, 48, 34, T.quoteFont, "600", 1.28);
-  drawLines(en, 88, 820, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
-  drawQuietSig(88, Math.min(820 + en.totalHeight + 28, 1288), sunrise, "left", 'italic 500 28px "Cinzel",Georgia,serif');
+  // Quote begins just below theme with clear separation
+  const quoteStartY = themeY + 52;
+  const quoteMaxH = 1262 - quoteStartY; // leave ~88px for sig+brand
+  // Arch dynamic fitting: preferred 46px, min 32px, tighter line-height
+  const en = fitBox(quote, 930, Math.min(quoteMaxH, 400), 46, 32, T.quoteFont, "600", 1.18);
+  drawLines(en, 75, quoteStartY, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
+  drawQuietSig(75, Math.min(quoteStartY + en.totalHeight + 24, 1288), sunrise, "left", 'italic 500 26px "Cinzel",Georgia,serif');
   drawQuietBrand(992, 1312, hexA(ivory, 0.7), "right");
   return { en };
 }
@@ -1422,10 +1432,10 @@ function renderCinematicEditorial(p_old) {
   ctx.fillStyle = accent;
   ctx.fillRect(64, 186, 72, 6);
 
-  const laid = fillPhraseQuote(quote, 900, 920, 58, 36, 70, 46, bebas, sans, "400", "600", true, false, 0.98, 1.28);
+  const laid = fillPhraseQuote(quote, 900, 920, 58, 36, 70, 46, bebas, sans, "400", "600", true, false, 0.98, 1.22);
   let cy = 236;
   laid.blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 16;
+    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 4;
     drawMixedLine(b.line, 64, cy, b.size, b.weight, b.fontName, ivory, accent, heroes, b.upper, "left");
     cy += b.lh;
   });
