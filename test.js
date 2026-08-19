@@ -952,80 +952,153 @@ function renderNeonTheme(p_old) {
   const dt = editorialDate();
   const quote = currentEnglishMessage();
 
-  // Background
+  // 1. Solid Dark Background
   ctx.fillStyle = p.b;
   ctx.fillRect(0, 0, 1080, 1350);
 
-  // Optional subtle image
+  // 2. Subdued Atmospheric Image
   const crop = compositionCrop();
-  ctx.globalAlpha = 0.15; // Extremely subdued
+  ctx.globalAlpha = 0.15;
   drawImageFill(p, 0, 0, 1080, 1350, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Cinematic Grade"
   });
   ctx.globalAlpha = 1.0;
 
-  // Blue-violet haze
-  const wash = ctx.createRadialGradient(540, 675, 200, 540, 675, 800);
-  wash.addColorStop(0, "rgba(84,230,255,0.06)");
-  wash.addColorStop(1, "rgba(84,230,255,0)");
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, 1080, 1350);
-
-  // Very soft global vignette & texture
-  drawVignette(0, 0, 1080, 1350, 0.15);
+  // 3. Very soft global vignette & texture
+  drawVignette(0, 0, 1080, 1350, 0.25);
   drawGrain(0, 0, 1080, 1350, 0.025);
 
   ctx.textAlign = "center";
   
-  const en = fitQuote(quote, 820, 600, '500 52px "Inter",sans-serif', "500", 1.35);
+  // Fit message
+  const en = fitQuote(quote, 860, 600, '400 52px "Inter",sans-serif', "400", 1.35);
   
   // Layout spacing
-  // Total height calculation to center the block slightly above middle
-  const totalH = 40 + 80 + 120 + (en.lines.length * 70); 
-  let currentY = (1350 - totalH) / 2;
-  // Shift slightly up for premium poster feel
-  currentY -= 60;
+  const totalH = 40 + 80 + 100 + (en.lines.length * 70); 
+  let currentY = (1350 - totalH) / 2 - 40;
 
-  // Date
-  ctx.fillStyle = p.a; // #A7B1C9
+  // ==========================================
+  // DATE
+  // ==========================================
   ctx.font = '600 22px "Inter",sans-serif';
-  ctx.shadowColor = p.gold;
-  ctx.shadowBlur = 4; // Minimal glow
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, currentY);
+  const dateText = (dt.full || dt.line).toUpperCase();
+  
+  // Soft glow
+  ctx.shadowColor = p.a;
+  ctx.shadowBlur = 8;
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = p.a;
+  ctx.fillText(dateText, 540, currentY);
+  
+  // Core
+  ctx.shadowBlur = 2;
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = p.a;
+  ctx.fillText(dateText, 540, currentY);
+  
   currentY += 80;
 
-  // Theme
-  ctx.fillStyle = "#FFFFFF";
+  // ==========================================
+  // THEME (Hero Element)
+  // ==========================================
   ctx.font = '700 72px "Inter",sans-serif';
-  ctx.shadowColor = p.gold; // #54E6FF
-  ctx.shadowBlur = 24; // Strongest glow
-  ctx.fillText(themeTitle().toUpperCase(), 540, currentY);
-  // Optional second layer for sharp core + soft outer
-  ctx.shadowBlur = 0;
-  ctx.fillText(themeTitle().toUpperCase(), 540, currentY);
-  currentY += 140;
+  const themeText = themeTitle().toUpperCase();
+  
+  // Environmental bloom behind Theme
+  ctx.save();
+  const bloom = ctx.createRadialGradient(540, currentY - 24, 20, 540, currentY - 24, 300);
+  bloom.addColorStop(0, "rgba(84,230,255,0.14)");
+  bloom.addColorStop(1, "rgba(84,230,255,0)");
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, currentY - 300, 1080, 600);
+  ctx.restore();
 
-  // Message
-  ctx.shadowColor = "rgba(84,230,255,0.4)";
-  ctx.shadowBlur = 12; // Restrained glow for readability
+  // 1. Broad halo
+  ctx.shadowColor = p.gold; // Cyan
+  ctx.shadowBlur = 42;
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = p.gold;
+  ctx.fillText(themeText, 540, currentY);
+
+  // 2. Tighter glow
+  ctx.shadowBlur = 20;
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = p.gold;
+  ctx.fillText(themeText, 540, currentY);
+
+  // 3. Bright tube/core
+  ctx.shadowBlur = 6;
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = "#E8FCFF";
+  ctx.fillText(themeText, 540, currentY);
+  
+  // Magenta accent dot/underline to satisfy dual-color rule safely
+  ctx.shadowColor = p.accent;
+  ctx.shadowBlur = 12;
+  ctx.globalAlpha = 0.8;
+  ctx.fillStyle = p.accent;
+  ctx.beginPath();
+  ctx.arc(540, currentY + 30, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 4;
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = "#FFE8F5";
+  ctx.fill();
+
+  currentY += 100;
+
+  // ==========================================
+  // MESSAGE
+  // ==========================================
   ctx.font = '400 52px "Inter",sans-serif';
-  ctx.fillStyle = p.ink; // #F8FAFF
   en.lines.forEach((line) => {
+    // 1. subtle glow
+    ctx.shadowColor = p.gold;
+    ctx.shadowBlur = 14;
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = p.gold;
     ctx.fillText(line, 540, currentY);
+
+    // 2. bright core
+    ctx.shadowBlur = 4;
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = p.ink; // #F8FAFF
+    ctx.fillText(line, 540, currentY);
+
     currentY += 70;
   });
   
   currentY += 60;
 
-  // Signature
-  ctx.shadowColor = p.accent; // #FF5ACD
-  ctx.shadowBlur = 8;
-  drawQuietSig(540, currentY, p.a, "center", 'italic 400 24px "Inter",sans-serif');
+  // ==========================================
+  // SIGNATURE
+  // ==========================================
+  const sigText = sigName();
+  if (sigText) {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.font = 'italic 400 24px "Inter",sans-serif';
+    
+    // Magenta glow
+    ctx.shadowColor = p.accent;
+    ctx.shadowBlur = 12;
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = p.accent;
+    ctx.fillText(sigText, 540, currentY);
+
+    // Core
+    ctx.shadowBlur = 3;
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = p.a;
+    ctx.fillText(sigText, 540, currentY);
+    ctx.restore();
+  }
   
   // Brand
   ctx.shadowBlur = 0;
-  drawQuietBrand(540, 1280, hexA(p.a, 0.5), "center");
+  ctx.globalAlpha = 1.0;
+  drawQuietBrand(540, 1300, hexA(p.a, 0.5), "center");
 
   return { en };
 }
