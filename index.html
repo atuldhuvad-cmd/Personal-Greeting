@@ -859,23 +859,23 @@ function renderGlassmorphic(p_old) {
   const dt = editorialDate();
   const quote = currentEnglishMessage();
   const paper = "#F3EFE7";
-  const parchment = "#ECE5DA";
 
+  // Single continuous paper background
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, 1080, 1350);
-  const wash = ctx.createLinearGradient(0, 0, 0, 1350);
-  wash.addColorStop(0, paper);
-  wash.addColorStop(1, parchment);
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.018);
 
   const imgH = 486;
   const crop = compositionCrop();
+  
+  // Image placed directly on paper (no local vignette/grain to avoid doubling)
   drawImageFill(p, 0, 0, 1080, imgH, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
-    treatment: "Quiet Matte", vignette: 0.08, grain: 0.02
+    treatment: "Quiet Matte"
   });
+
+  // Global subtle texture over entire canvas (image + paper)
+  drawVignette(0, 0, 1080, 1350, 0.04);
+  drawGrain(0, 0, 1080, 1350, 0.02);
 
   const headX = 540;
   ctx.save();
