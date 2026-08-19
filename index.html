@@ -567,9 +567,9 @@ function layoutPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadFont, re
     return { blocks, total, phrases };
   }
   let laid = pack(lead, rest);
-  while (laid.total > maxH && lead > 36) {
-    lead -= 4;
-    rest = Math.max(22, rest - 2);
+  while (laid.total > maxH && lead > 30) {
+    lead -= 2;
+    rest = Math.max(20, rest - 1);
     laid = pack(lead, rest);
   }
   return laid;
@@ -1238,8 +1238,10 @@ function renderHeroFocus(p_old) {
   ctx.restore();
 
   const quoteY = imgH + 156;
-  const quoteMaxH = 1288 - quoteY - 44;
-  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 52, 42, 66, 52, serif, serif, "700", "600", false, false, 1.32, 1.4);
+  // Safety margin: reserve 60px for signature + brand at bottom (was 44)
+  const quoteMaxH = 1288 - quoteY - 60;
+  // Human dynamic fitting: preferred 48px lead, cap at 52px, minimum ~30px via layoutPhraseQuote
+  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.28, 1.36);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
 
   drawQuietSig(540, Math.min(cy + 36, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
@@ -1364,7 +1366,8 @@ function renderSacredArch(p_old) {
   ctx.fillText(theme, headX, 768);
   ctx.restore();
 
-  const en = fitQuote(quote, 920, 430, T.quoteFont, "600", 1.28);
+  // Arch dynamic fitting: preferred start 48px, min 34px, height 370px (820+370=1190, leaves ~98px for sig+brand)
+  const en = fitBox(quote, 920, 370, 48, 34, T.quoteFont, "600", 1.28);
   drawLines(en, 88, 820, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
   drawQuietSig(88, Math.min(820 + en.totalHeight + 28, 1288), sunrise, "left", 'italic 500 28px "Cinzel",Georgia,serif');
   drawQuietBrand(992, 1312, hexA(ivory, 0.7), "right");
