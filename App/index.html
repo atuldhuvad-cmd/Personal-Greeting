@@ -844,15 +844,15 @@ function renderGlassmorphic(p) {
 
   ctx.textAlign = "left";
   ctx.fillStyle = hexA(p_ink, 0.55);
-  ctx.font = '600 12px "Inter",sans-serif';
-  ctx.fillText(dt.line, 80, 180);
+  ctx.font = '600 32px "Inter",sans-serif';
+  ctx.fillText(dt.line.toUpperCase(), 80, 180);
 
   ctx.fillStyle = hexA(p_ink, 0.85);
-  ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, 208);
+  ctx.font = '500 52px "Cormorant Garamond",Georgia,serif';
+  ctx.fillText(themeTitle().toUpperCase(), 80, 240);
 
   const maxQuoteW = 440;
-  const en = fitQuote(quote, maxQuoteW, 600, T.quoteFont, "500", 1.25);
+  const en = fitBox(quote, maxQuoteW, 540, 72, 58, T.quoteFont, "500", 1.25);
   const quoteY = 320;
   drawLines(en, 80, quoteY, p_ink, "left");
 
@@ -951,19 +951,19 @@ function renderHeroFocus(p) {
 
   ctx.textAlign = "left";
   ctx.fillStyle = hexA(p_ink, 0.55);
-  ctx.font = '600 12px "Inter",sans-serif';
-  ctx.fillText(dt.line, 80, imgH + 70);
+  ctx.font = '600 32px "Inter",sans-serif';
+  ctx.fillText(dt.line.toUpperCase(), 80, imgH + 60);
 
   ctx.fillStyle = hexA(p_ink, 0.85);
-  ctx.font = '500 18px "Cormorant Garamond",Georgia,serif';
-  ctx.fillText(themeTitle(), 80, imgH + 98);
+  ctx.font = '500 50px "Cormorant Garamond",Georgia,serif';
+  ctx.fillText(themeTitle().toUpperCase(), 80, imgH + 120);
 
-  const en = fitQuote(quote, 920, 200, T.quoteFont, "500", 1.2);
-  const quoteY = imgH + 140;
+  const en = fitBox(quote, 920, 180, 68, 56, T.quoteFont, "500", 1.2);
+  const quoteY = imgH + 170;
   
   drawLines(en, 80, quoteY, p_ink, "left");
 
-  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1300), p.accent, "left");
+  drawQuietSig(80, Math.min(quoteY + en.totalHeight + 40, 1300), p.accent, "left", 'italic 500 26px "Cormorant Garamond",Georgia,serif');
   drawQuietBrand(1000, 1300, hexA(p_ink, 0.4), "right");
 
   return { en };
@@ -1043,14 +1043,14 @@ function renderSacredArch(p) {
   ctx.stroke();
   ctx.textAlign = "left";
   ctx.fillStyle = hexA(ink, 0.55);
-  ctx.font = '600 12px "Inter",sans-serif';
-  ctx.fillText(dt.line, 88, 890);
+  ctx.font = '600 32px "Inter",sans-serif';
+  ctx.fillText(dt.line.toUpperCase(), 88, 890);
   ctx.fillStyle = hexA(ink, 0.7);
-  ctx.font = '500 18px "Cinzel",Georgia,serif';
-  ctx.fillText(themeTitle(), 88, 918);
-  const en = fitQuote(quote, 900, 300, T.quoteFont, "500", 1.24);
-  drawLines(en, 88, 962, ink, "left");
-  drawQuietSig(88, Math.min(962 + en.totalHeight + 34, 1296), hexA(p.gold, 0.85), "left");
+  ctx.font = '500 48px "Cinzel",Georgia,serif';
+  ctx.fillText(themeTitle().toUpperCase(), 88, 950);
+  const en = fitBox(quote, 900, 260, 66, 54, T.quoteFont, "500", 1.24);
+  drawLines(en, 88, 1000, ink, "left");
+  drawQuietSig(88, Math.min(1000 + en.totalHeight + 40, 1296), hexA(p.gold, 0.85), "left", 'italic 500 28px "Cinzel",Georgia,serif');
   drawQuietBrand(992, 1312, hexA(ink, 0.7), "right");
   return { en };
 }
@@ -1074,14 +1074,14 @@ function renderCinematicEditorial(p) {
   // High-End Campaign Header
   ctx.textAlign = "left";
   ctx.fillStyle = "rgba(220, 230, 245, 0.55)";
-  ctx.font = '700 11px "Inter",sans-serif';
-  ctx.fillText("CAMPAIGN EDITION // " + dt.year, 64, 56);
+  ctx.font = '700 30px "Inter",sans-serif';
+  ctx.fillText("CAMPAIGN EDITION // " + dt.year, 64, 80);
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.font = '700 18px "Bodoni Moda",Georgia,serif';
-  ctx.fillText(themeTitle().toUpperCase(), 64, 84);
+  ctx.font = '700 52px "Bodoni Moda",Georgia,serif';
+  ctx.fillText(themeTitle().toUpperCase(), 64, 140);
 
-  const en = fitQuote(quote, 920, 420, T.quoteFont, "500", 1.18);
+  const en = fitBox(quote, 920, 420, 72, 56, T.quoteFont, "500", 1.18);
   const quoteY = Math.min(1020, Math.max(760, 1284 - en.totalHeight - 80));
 
   // Crisp Pure White Quote Text
