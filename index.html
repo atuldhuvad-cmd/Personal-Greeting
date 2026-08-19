@@ -603,10 +603,85 @@ function isShortPosterQuote(text) {
   const words = t.split(/\s+/).filter(Boolean).length;
   return words <= 16 && t.length <= 90;
 }
+function packHumanPhraseQuote(quote, maxW, leadSize, restSize, leadLh, restLh, extraGap, serif) {
+  const phrases = splitQuotePhrases(quote);
+  const blocks = [];
+  let maxLineW = 0;
+  let firstAscent = Math.round(leadSize * 0.78);
+  let lastDescent = Math.round((restSize || leadSize) * 0.22);
+  phrases.forEach((ph, i) => {
+    const isLead = i === 0;
+    const size = isLead ? leadSize : restSize;
+    const weight = isLead ? "700" : "600";
+    const font = weight + " " + size + "px " + serif;
+    const lines = wrapWordsToWidth(ph, maxW, font);
+    const lh = Math.max(1, Math.round(size * (isLead ? leadLh : restLh)));
+    ctx.font = font;
+    lines.forEach(line => {
+      const gapBefore = (blocks.length && isLead !== blocks[blocks.length - 1].isLead) ? extraGap : 0;
+      const m = ctx.measureText(line);
+      maxLineW = Math.max(maxLineW, m.width);
+      if (!blocks.length) firstAscent = Math.ceil(m.actualBoundingBoxAscent || size * 0.78);
+      lastDescent = Math.ceil(m.actualBoundingBoxDescent || size * 0.22);
+      blocks.push({ line, size, fontName: serif, weight, lh, upper: false, isLead, gapBefore });
+    });
+  });
+  const total = blocks.reduce((s, b) => s + (b.gapBefore || 0) + b.lh, 0);
+  return { blocks, total, maxLineW, firstAscent, lastDescent, leadSize, restSize, leadLh, restLh, extraGap };
+}
+function fitHumanPhraseQuote(quote, maxW, preferredQuoteY, themeBottom, quoteEndLimit, serif) {
+  let lead = 48, rest = 38;
+  let leadLh = 1.24, restLh = 1.32;
+  let extraGap = 8;
+  const leadMin = 32, restMin = 30;
+  const leadEmerg = 24, restEmerg = 22;
+
+  function attempt() {
+    const packed = packHumanPhraseQuote(quote, maxW, lead, rest, leadLh, restLh, extraGap, serif);
+    const quoteY = Math.max(preferredQuoteY, themeBottom + 10 + packed.firstAscent);
+    const maxH = quoteEndLimit - quoteY;
+    const widthOk = packed.maxLineW <= maxW + 0.5;
+    const heightOk = packed.total <= maxH && maxH > 16;
+    return Object.assign(packed, { quoteY, maxH, ok: widthOk && heightOk });
+  }
+
+  let laid = attempt();
+  while (!laid.ok && (lead > leadMin || rest > restMin)) {
+    if (lead > leadMin) lead -= 1;
+    if (rest > restMin) rest -= 1;
+    laid = attempt();
+  }
+  while (!laid.ok && (leadLh > 1.12 || restLh > 1.16)) {
+    leadLh = Math.max(1.12, Math.round((leadLh - 0.02) * 100) / 100);
+    restLh = Math.max(1.16, Math.round((restLh - 0.02) * 100) / 100);
+    laid = attempt();
+  }
+  while (!laid.ok && extraGap > 2) {
+    extraGap -= 2;
+    laid = attempt();
+  }
+  while (!laid.ok && (lead > leadEmerg || rest > restEmerg)) {
+    if (lead > leadEmerg) lead -= 1;
+    if (rest > restEmerg) rest -= 1;
+    laid = attempt();
+  }
+  while (!laid.ok && (leadLh > 1.05 || restLh > 1.08)) {
+    leadLh = Math.max(1.05, Math.round((leadLh - 0.02) * 100) / 100);
+    restLh = Math.max(1.08, Math.round((restLh - 0.02) * 100) / 100);
+    laid = attempt();
+  }
+  while (!laid.ok && (lead > 20 || rest > 18)) {
+    if (lead > 20) lead -= 1;
+    if (rest > 18) rest -= 1;
+    laid = attempt();
+  }
+  return laid;
+}
 function drawCenteredQuoteBlocks(blocks, x, y, ink, accent) {
   let cy = y;
   blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== blocks[idx - 1].isLead) cy += 8;
+    if (b.gapBefore != null) cy += b.gapBefore;
+    else if (idx && b.isLead !== blocks[idx - 1].isLead) cy += 8;
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
@@ -1242,30 +1317,41 @@ function renderHeroFocus(p_old) {
   }
   ctx.fillStyle = themeColor;
   ctx.fillText(theme.toUpperCase(), 540, imgH + 100);
+  const themeBox = ctx.measureText(theme.toUpperCase());
+  const themeBottom = (imgH + 100) + Math.ceil(themeBox.actualBoundingBoxDescent || 4);
   ctx.restore();
 
-  const quoteY = imgH + 128;
-  // Safety margin: reserve 60px for signature + brand at bottom
-  const quoteMaxH = 1288 - quoteY - 60;
-  // Short quotes: keep preferred 48/38 sizes (no fillPhraseQuote upscale or leading grow).
-  // Normal/long quotes: unchanged dynamic fit with 52/48 caps.
-  const laid = isShortPosterQuote(quote)
-    ? layoutPhraseQuote(quote, 900, quoteMaxH, 48, 38, serif, serif, "700", "600", false, false, 1.24, 1.32)
-    : fillPhraseQuote(quote, 900, quoteMaxH, 48, 38, 52, 48, serif, serif, "700", "600", false, false, 1.24, 1.32);
+  const hasSig = !!sigName();
+  const sigGap = 24;
+  const sigSize = 24;
+  const sigMaxY = 1288;
+  const brandY = 1314;
+  const quoteEndLimit = hasSig ? (Math.min(sigMaxY, brandY - 18) - sigGap) : (brandY - 22);
+  const preferredQuoteY = imgH + 128;
+  const laid = fitHumanPhraseQuote(quote, 900, preferredQuoteY, themeBottom, quoteEndLimit, serif);
+  const quoteY = laid.quoteY;
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
+  const sigY = Math.min(cy + sigGap, sigMaxY);
   window.__posterQuoteMetrics = {
     style: "Hero Focus",
-    isShort: isShortPosterQuote(quote),
-    leadSize: laid.blocks[0] ? laid.blocks[0].size : 0,
-    restSize: (laid.blocks.find(b => !b.isLead) || laid.blocks[0] || {}).size || 0,
+    ok: !!laid.ok,
+    leadSize: laid.leadSize,
+    restSize: laid.restSize,
     leadLh: laid.blocks[0] ? laid.blocks[0].lh : 0,
     total: laid.total,
     quoteY: quoteY,
-    quoteMaxH: quoteMaxH,
-    bottom: cy
+    quoteMaxH: laid.maxH,
+    maxLineW: laid.maxLineW,
+    firstAscent: laid.firstAscent,
+    lastDescent: laid.lastDescent,
+    themeBottom: themeBottom,
+    quoteEndLimit: quoteEndLimit,
+    bottom: cy,
+    sigY: hasSig ? sigY : null,
+    hasSig: hasSig
   };
 
-  drawQuietSig(540, Math.min(cy + 24, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
+  drawQuietSig(540, sigY, teal, "center", 'italic 600 24px "Inter",sans-serif');
   drawQuietBrand(1000, 1314, hexA(brown, 0.7), "right");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: Math.max(40, cy - quoteY), fontSize: laid.blocks[0] ? laid.blocks[0].size : 38 } };
 }

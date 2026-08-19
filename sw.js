@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-short-message-balance-v1";
+const CACHE = "daily-inspiration-v2-3-2-human-fit-engine-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./data/content.js"];
 
 self.addEventListener("install", e => {
