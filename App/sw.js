@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-reference-redesign-v1";
+const CACHE = "daily-inspiration-v2-3-2-density-readability-fix-v1";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./data/content.js"];
 
 self.addEventListener("install", e => {

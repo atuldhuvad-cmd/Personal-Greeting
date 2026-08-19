@@ -127,7 +127,7 @@ details.accordion-item .accordion-body{padding:14px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@400..800&family=Manrope:wght@400..800&family=Monoton&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Cinzel:wght@400..900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@400..800&family=Manrope:wght@400..800&family=Monoton&family=Playfair+Display:ital,wght@0,500..800;1,500..800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="app">
@@ -573,6 +573,44 @@ function layoutPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadFont, re
     laid = pack(lead, rest);
   }
   return laid;
+}
+function fillPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadCap, restCap, leadFont, restFont, leadWeight, restWeight, leadUpper, restUpper, leadLh, restLh) {
+  let lead = leadStart, rest = restStart;
+  let lH = leadLh, rH = restLh;
+  let laid = layoutPhraseQuote(quote, maxW, 2400, lead, rest, leadFont, restFont, leadWeight, restWeight, leadUpper, restUpper, lH, rH);
+  while (laid.total < maxH * 0.8 && (lead < leadCap || rest < restCap)) {
+    if (lead < leadCap) lead += 2;
+    if (rest < restCap) rest += 1;
+    const next = layoutPhraseQuote(quote, maxW, 2400, lead, rest, leadFont, restFont, leadWeight, restWeight, leadUpper, restUpper, lH, rH);
+    if (next.total > maxH) break;
+    laid = next;
+  }
+  while (laid.total < maxH * 0.86 && (lH < 1.82 || rH < 1.9)) {
+    lH = Math.min(1.82, lH + 0.06);
+    rH = Math.min(1.9, rH + 0.06);
+    const next = layoutPhraseQuote(quote, maxW, 2400, lead, rest, leadFont, restFont, leadWeight, restWeight, leadUpper, restUpper, lH, rH);
+    if (next.total > maxH) break;
+    laid = next;
+  }
+  if (laid.total > maxH) {
+    laid = layoutPhraseQuote(quote, maxW, maxH, leadStart, restStart, leadFont, restFont, leadWeight, restWeight, leadUpper, restUpper, leadLh, restLh);
+  }
+  return laid;
+}
+function drawCenteredQuoteBlocks(blocks, x, y, ink, accent) {
+  let cy = y;
+  blocks.forEach((b, idx) => {
+    if (idx && b.isLead !== blocks[idx - 1].isLead) cy += 20;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = b.weight + " " + b.size + "px " + b.fontName;
+    ctx.fillStyle = b.isLead ? accent : ink;
+    ctx.fillText(b.upper ? String(b.line).toUpperCase() : b.line, x, cy);
+    ctx.restore();
+    cy += b.lh;
+  });
+  return cy;
 }
 function drawNeonTube(text, x, y, color, font, align) {
   ctx.save();
@@ -1037,7 +1075,7 @@ function renderGlassmorphic(p_old) {
   const coral = "#D66B58";
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const serif = '"Bodoni Moda",Georgia,serif';
+  const quoteFace = '"Cormorant Garamond",Georgia,serif';
   const sans = '"Inter",sans-serif';
 
   ctx.fillStyle = paper;
@@ -1053,42 +1091,36 @@ function renderGlassmorphic(p_old) {
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = "#6A5F57";
-  ctx.font = '600 28px ' + sans;
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 118);
+  ctx.font = '600 24px ' + sans;
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 96);
 
   const theme = themeTitle();
-  let themeSize = 42;
+  let themeSize = 36;
   ctx.font = '700 ' + themeSize + 'px ' + sans;
-  while (ctx.measureText(theme.toUpperCase()).width > 920 && themeSize > 24) {
+  while (ctx.measureText(theme.toUpperCase()).width > 920 && themeSize > 22) {
     themeSize -= 2;
     ctx.font = '700 ' + themeSize + 'px ' + sans;
   }
   ctx.fillStyle = burgundy;
-  ctx.fillText(theme.toUpperCase(), 540, 178);
+  ctx.fillText(theme.toUpperCase(), 540, 148);
   ctx.restore();
 
   ctx.strokeStyle = coral;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(540, 214);
-  ctx.lineTo(554, 228);
-  ctx.lineTo(540, 242);
-  ctx.lineTo(526, 228);
+  ctx.moveTo(540, 168);
+  ctx.lineTo(550, 178);
+  ctx.lineTo(540, 188);
+  ctx.lineTo(530, 178);
   ctx.closePath();
   ctx.stroke();
 
-  const quoteY = 340;
-  const quoteMaxH = 820;
-  const heroes = quoteHeroTokens(quote);
-  const laid = layoutPhraseQuote(quote, 940, quoteMaxH, 108, 54, serif, serif, "700", "500", true, false, 1.0, 1.22);
-  let cy = quoteY;
-  laid.blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 22;
-    drawMixedLine(b.line, 540, cy, b.size, b.weight, b.fontName, charcoal, burgundy, heroes, b.upper, "center");
-    cy += b.lh;
-  });
+  const quoteY = 268;
+  const quoteMaxH = 980;
+  const laid = fillPhraseQuote(quote, 860, quoteMaxH, 66, 50, 76, 58, quoteFace, quoteFace, "700", "600", false, false, 1.34, 1.44);
+  const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, charcoal, burgundy);
 
-  drawQuietSig(540, Math.min(cy + 48, 1268), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
+  drawQuietSig(540, Math.min(cy + 44, 1270), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
   drawQuietBrand(540, 1310, hexA("#6A5F57", 0.85), "center");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: cy - quoteY, fontSize: laid.blocks[0] ? laid.blocks[0].size : 48 } };
 }
@@ -1171,9 +1203,10 @@ function renderHeroFocus(p_old) {
   const family = classifyThemeFamily(posterThemeBlob());
   const themeColor = family === "peace" || family === "wisdom" ? teal : (family === "courage" ? orange : coral);
   const isLong = (quote || "").length > 115;
-  const imgH = isLong ? 756 : 850;
+  const imgH = isLong ? 540 : 568;
   const crop = compositionCrop();
   const p = { b: cream, a: "#FFE8C8", soft: cream };
+  const serif = '"Playfair Display",Georgia,serif';
 
   ctx.fillStyle = cream;
   ctx.fillRect(0, 0, 1080, 1350);
@@ -1181,50 +1214,37 @@ function renderHeroFocus(p_old) {
   drawImageFill(p, 0, 0, 1080, imgH, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Vibrant Daylight", vignette: 0.08,
-    fadeBottom: 0.28, fadeColor: "rgba(255,242,222,0.98)",
+    fadeBottom: 0.22, fadeColor: "rgba(255,242,222,0.98)",
     grain: 0.02
   });
 
   ctx.fillStyle = cream;
   ctx.fillRect(0, imgH, 1080, 1350 - imgH);
 
-  const topWash = ctx.createLinearGradient(0, 0, 0, 168);
-  topWash.addColorStop(0, "rgba(255,242,222,0.62)");
-  topWash.addColorStop(1, "rgba(255,242,222,0)");
-  ctx.fillStyle = topWash;
-  ctx.fillRect(0, 0, 1080, 168);
-
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = brown;
-  ctx.font = '700 26px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 72);
+  ctx.font = '700 24px "Inter",sans-serif';
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, imgH + 52);
   const theme = themeTitle();
-  let themeSize = 56;
+  let themeSize = 42;
   ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
-  while (ctx.measureText(theme.toUpperCase()).width > 920 && themeSize > 28) {
+  while (ctx.measureText(theme.toUpperCase()).width > 920 && themeSize > 26) {
     themeSize -= 2;
     ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
   }
   ctx.fillStyle = themeColor;
-  ctx.shadowColor = "rgba(255,242,222,0.85)";
-  ctx.shadowBlur = 12;
-  ctx.fillText(theme.toUpperCase(), 540, 132);
+  ctx.fillText(theme.toUpperCase(), 540, imgH + 108);
   ctx.restore();
 
-  const heroes = quoteHeroTokens(quote);
-  const quoteMaxH = 1350 - imgH - 168;
-  const laid = layoutPhraseQuote(quote, 920, quoteMaxH, 44, 34, '"Inter",sans-serif', '"Inter",sans-serif', "700", "600", false, false, 1.18, 1.28);
-  let cy = imgH + 58;
-  laid.blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 10;
-    drawMixedLine(b.line, 80, cy, b.size, b.weight, b.fontName, brown, themeColor, heroes, false, "left");
-    cy += b.lh;
-  });
+  const quoteY = imgH + 156;
+  const quoteMaxH = 1288 - quoteY - 44;
+  const laid = fillPhraseQuote(quote, 900, quoteMaxH, 52, 42, 66, 52, serif, serif, "700", "600", false, false, 1.32, 1.4);
+  const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
 
-  drawQuietSig(80, Math.min(cy + 36, 1296), teal, "left", 'italic 600 24px "Inter",sans-serif');
+  drawQuietSig(540, Math.min(cy + 36, 1288), teal, "center", 'italic 600 24px "Inter",sans-serif');
   drawQuietBrand(1000, 1314, hexA(brown, 0.7), "right");
-  return { en: { lines: laid.blocks.map(b => b.line), totalHeight: Math.max(40, cy - (imgH + 58)), fontSize: laid.blocks[0] ? laid.blocks[0].size : 34 } };
+  return { en: { lines: laid.blocks.map(b => b.line), totalHeight: Math.max(40, cy - quoteY), fontSize: laid.blocks[0] ? laid.blocks[0].size : 38 } };
 }
 
 function renderEditorialPremium(p) {
@@ -1295,7 +1315,7 @@ function renderSacredArch(p_old) {
   ctx.fillStyle = indigo;
   ctx.fillRect(0, 0, 1080, 1350);
   drawBackgroundJaali(ctx);
-  const archX = 70, archY = 36, archW = 940, archH = 800;
+  const archX = 70, archY = 24, archW = 940, archH = 620;
   const crop = compositionCrop();
   ctx.save();
   drawSacredArch(ctx, archX, archY, archW, archH);
@@ -1330,23 +1350,23 @@ function renderSacredArch(p_old) {
   ctx.textAlign = "center";
   ctx.fillStyle = hexA(ivory, 0.82);
   ctx.font = '600 26px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, 888);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), headX, 702);
   ctx.fillStyle = hexA(turquoise, 0.7);
-  ctx.fillRect(headX - 36, 904, 72, 1.5);
+  ctx.fillRect(headX - 36, 718, 72, 1.5);
   ctx.fillStyle = gold;
-  ctx.font = '600 44px "Cinzel",Georgia,serif';
+  ctx.font = '600 38px "Cinzel",Georgia,serif';
   const theme = themeTitle().toUpperCase();
-  let ts = 44;
-  while (ctx.measureText(theme).width > 900 && ts > 26) {
+  let ts = 38;
+  while (ctx.measureText(theme).width > 900 && ts > 24) {
     ts -= 2;
     ctx.font = '600 ' + ts + 'px "Cinzel",Georgia,serif';
   }
-  ctx.fillText(theme, headX, 958);
+  ctx.fillText(theme, headX, 768);
   ctx.restore();
 
-  const en = fitQuote(quote, 900, 250, T.quoteFont, "500", 1.24);
-  drawLines(en, 88, 1008, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
-  drawQuietSig(88, Math.min(1008 + en.totalHeight + 40, 1296), sunrise, "left", 'italic 500 28px "Cinzel",Georgia,serif');
+  const en = fitQuote(quote, 920, 430, T.quoteFont, "600", 1.28);
+  drawLines(en, 88, 820, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
+  drawQuietSig(88, Math.min(820 + en.totalHeight + 28, 1288), sunrise, "left", 'italic 500 28px "Cinzel",Georgia,serif');
   drawQuietBrand(992, 1312, hexA(ivory, 0.7), "right");
   return { en };
 }
@@ -1368,8 +1388,9 @@ function renderCinematicEditorial(p_old) {
   ctx.fillRect(0, 0, 1080, 1350);
   drawImageFill(p, 0, 0, 1080, 1350, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
-    treatment: "Campaign Contrast", vignette: 0.28,
-    fadeBottom: 0.52, fadeColor: "rgba(9, 13, 24, 0.92)",
+    treatment: "Campaign Contrast", vignette: 0.26,
+    fadeBottom: 0.7, fadeColor: "rgba(9, 13, 24, 0.94)",
+    fadeLeft: 0.32,
     grain: 0.028
   });
 
@@ -1379,34 +1400,34 @@ function renderCinematicEditorial(p_old) {
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(247,244,238,0.72)";
-  ctx.font = '700 24px ' + sans;
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 78);
+  ctx.font = '700 22px ' + sans;
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 72);
   const theme = themeTitle().toUpperCase();
-  let themeSize = 118;
+  let themeSize = 86;
   ctx.font = '400 ' + themeSize + 'px ' + bebas;
-  while (ctx.measureText(theme).width > 980 && themeSize > 52) {
+  while (ctx.measureText(theme).width > 980 && themeSize > 48) {
     themeSize -= 4;
     ctx.font = '400 ' + themeSize + 'px ' + bebas;
   }
   ctx.fillStyle = ivory;
   ctx.shadowColor = "rgba(0,0,0,0.55)";
   ctx.shadowBlur = 18;
-  ctx.fillText(theme, 540, 188);
+  ctx.fillText(theme, 540, 158);
   ctx.restore();
   resetDrawState();
 
   ctx.fillStyle = accent;
-  ctx.fillRect(64, 214, 72, 6);
+  ctx.fillRect(64, 186, 72, 6);
 
-  const laid = layoutPhraseQuote(quote, 940, 520, 78, 40, bebas, sans, "400", "600", true, false, 0.92, 1.22);
-  let cy = Math.min(980, Math.max(760, 1270 - laid.total - 90));
+  const laid = fillPhraseQuote(quote, 900, 920, 58, 36, 70, 46, bebas, sans, "400", "600", true, false, 0.98, 1.28);
+  let cy = 236;
   laid.blocks.forEach((b, idx) => {
-    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 14;
+    if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 16;
     drawMixedLine(b.line, 64, cy, b.size, b.weight, b.fontName, ivory, accent, heroes, b.upper, "left");
     cy += b.lh;
   });
 
-  drawQuietSig(64, Math.min(cy + 36, 1306), accent, "left", 'italic 600 24px "Inter",sans-serif');
+  drawQuietSig(64, Math.min(cy + 32, 1296), accent, "left", 'italic 600 24px "Inter",sans-serif');
   drawQuietBrand(1016, 1318, "rgba(247,244,238,0.55)", "right");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: laid.total, fontSize: laid.blocks[0] ? laid.blocks[0].size : 48 } };
 }
@@ -1583,20 +1604,20 @@ function renderNeonTheme(p_old) {
   resetDrawState();
 
   let msgSize = 48;
-  let msgLines = wrapWordsToWidth(quote, 900, "800 " + msgSize + "px " + sans);
-  let msgLh = Math.round(msgSize * 1.32);
-  while (msgLines.length * msgLh > 560 && msgSize > 28) {
+  let msgLines = wrapWordsToWidth(quote, 620, "800 " + msgSize + "px " + sans);
+  let msgLh = Math.round(msgSize * 1.4);
+  while (msgLines.length * msgLh > 820 && msgSize > 34) {
     msgSize -= 2;
-    msgLines = wrapWordsToWidth(quote, 900, "800 " + msgSize + "px " + sans);
-    msgLh = Math.round(msgSize * 1.32);
+    msgLines = wrapWordsToWidth(quote, 620, "800 " + msgSize + "px " + sans);
+    msgLh = Math.round(msgSize * 1.4);
   }
   const msgFont = "800 " + msgSize + "px " + sans;
 
   const themeText = themeTitle().toUpperCase();
-  let themeFont = '400 76px "Monoton",cursive';
+  let themeFont = '400 64px "Monoton",cursive';
   ctx.font = themeFont;
   if (ctx.measureText(themeText).width > 940) {
-    let ts = 72;
+    let ts = 58;
     themeFont = "900 " + ts + "px " + sans;
     ctx.font = themeFont;
     while (ctx.measureText(themeText).width > 940 && ts > 36) {
@@ -1607,8 +1628,11 @@ function renderNeonTheme(p_old) {
   }
 
   const dateText = (dt.full || dt.line).toUpperCase();
-  const stackH = 36 + 110 + 48 + msgLines.length * msgLh + (sigName() ? 70 : 0);
-  let y = Math.max(150, (1350 - stackH) / 2);
+  let y = 128;
+  const msgStart = 310;
+  const msgTarget = sigName() ? 1210 : 1248;
+  msgLh = Math.round((msgTarget - msgStart) / Math.max(1, msgLines.length));
+  msgLh = Math.max(Math.round(msgSize * 1.32), Math.min(msgLh, Math.round(msgSize * 3.05)));
 
   const pinkBloom = ctx.createRadialGradient(540, y + 90, 20, 540, y + 90, 420);
   pinkBloom.addColorStop(0, "rgba(255,56,199,0.34)");
@@ -1616,16 +1640,16 @@ function renderNeonTheme(p_old) {
   ctx.fillStyle = pinkBloom;
   ctx.fillRect(0, y - 80, 1080, 520);
 
-  const cyanBloom = ctx.createRadialGradient(540, y + 240, 16, 540, y + 300, 380);
-  cyanBloom.addColorStop(0, "rgba(52,229,255,0.22)");
+  const cyanBloom = ctx.createRadialGradient(540, 720, 16, 540, 820, 520);
+  cyanBloom.addColorStop(0, "rgba(52,229,255,0.18)");
   cyanBloom.addColorStop(1, "rgba(52,229,255,0)");
   ctx.fillStyle = cyanBloom;
-  ctx.fillRect(80, y + 80, 920, 520);
+  ctx.fillRect(40, 280, 1000, 900);
 
   drawNeonTube(dateText, 540, y, cyan, "700 26px " + sans, "center");
-  y += 108;
+  y += 88;
   drawNeonTube(themeText, 540, y, pink, themeFont, "center");
-  y += 86;
+  y += 70;
 
   ctx.save();
   ctx.shadowColor = yellow;
@@ -1638,7 +1662,7 @@ function renderNeonTheme(p_old) {
   ctx.fillStyle = "#F9FCFF";
   ctx.fill();
   ctx.restore();
-  y += 48;
+  y = Math.max(y + 28, msgStart);
 
   msgLines.forEach((line, i) => {
     const color = lineColors[i % 3];
@@ -1654,8 +1678,8 @@ function renderNeonTheme(p_old) {
 
   const sigText = sigName();
   if (sigText) {
-    y += 36;
-    drawNeonTube(sigText, 540, Math.min(y, 1288), yellow, 'italic 600 26px "Inter",sans-serif', "center");
+    y += 28;
+    drawNeonTube(sigText, 540, Math.min(y, 1276), yellow, 'italic 600 26px "Inter",sans-serif', "center");
   }
 
   resetDrawState();
