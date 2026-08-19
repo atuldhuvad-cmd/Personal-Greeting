@@ -1,4 +1,4 @@
-﻿Backups/
+Backups/
 _TEMP_EXTRACT/
 Releases/Final/
 Releases/Candidates/*.zip
@@ -15,6 +15,13 @@ Releases/Candidates/*.zip
 !App/artwork/**/*.jpg
 !App/artwork/**/*.jpeg
 !App/artwork/**/*.webp
+!artwork/**/*.png
+!artwork/**/*.jpg
+!artwork/**/*.jpeg
+!artwork/**/*.webp
 .DS_Store
 Thumbs.db
 desktop.ini
+node_modules/
+Tools/screenshots/
+npm-debug.log*
