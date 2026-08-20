@@ -215,7 +215,7 @@ details.accordion-item .accordion-body{padding:14px}
 <button class="chip" data-style="Cinematic Editorial">Cinematic</button>
 <button class="chip" data-style="Neon">Neon</button>
 </div>
-<div class="frame"><canvas id="poster" width="1080" height="1350"></canvas><div id="status" class="status">Loading 365-day dataset…</div></div></section>
+<div class="frame"><canvas id="poster" width="1080" height="1920"></canvas><div id="status" class="status">Loading 365-day dataset…</div></div></section>
 </main>
 </section>
 
@@ -362,7 +362,10 @@ if ('serviceWorker' in navigator) {
 
 
 
-const $=id=>document.getElementById(id),cvs=$("poster"),ctx=cvs.getContext("2d");let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false;
+const $=id=>document.getElementById(id),cvs=$("poster"),ctx=cvs.getContext("2d");
+const POSTER_W = 1080, POSTER_H = 1920;
+if (cvs) { cvs.width = POSTER_W; cvs.height = POSTER_H; }
+let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false;
 function onEl(id,ev,fn){const el=$(id);if(!el)return false;el.addEventListener(ev,fn);return true}
 function resolveVisibleStyle(name){return STYLES.includes(name)?name:"Auto Theme"}
 function syncStyleChips(){
@@ -461,9 +464,9 @@ function fitBox(text, maxW, maxH, startSize = 74, minSize = 42, fontName = "Geor
 }
 
 function drawLines(f,x,y,color,align="center",shadow){ctx.save();ctx.font=f.font;ctx.fillStyle=color;ctx.textAlign=align;if(shadow){ctx.shadowColor=shadow.color||"rgba(0,0,0,0.38)";ctx.shadowBlur=shadow.blur||12;ctx.shadowOffsetY=shadow.y||1;ctx.shadowOffsetX=0}f.lines.forEach((line,i)=>ctx.fillText(line,x,y+i*f.lineHeight));ctx.restore();return y+f.lines.length*f.lineHeight}
-function texture(p){ctx.save();ctx.globalAlpha=.045;for(let y=0;y<1350;y+=9){ctx.fillStyle=y%18===0?p.accent:p.gold;ctx.fillRect(0,y,1080,1)}for(let x=0;x<1080;x+=13){ctx.fillStyle=p.ink;ctx.fillRect(x,0,1,1350)}ctx.restore()}
-function bg(p){const g=ctx.createLinearGradient(0,0,1080,1350);g.addColorStop(0,p.a);g.addColorStop(.48,p.soft);g.addColorStop(1,p.b);ctx.fillStyle=g;ctx.fillRect(0,0,1080,1350);texture(p)}
-function frame(p){ctx.strokeStyle=p.gold;ctx.lineWidth=5;rr(35,35,1010,1280,30);ctx.stroke();ctx.strokeStyle="#ffffff9c";ctx.lineWidth=2;rr(49,49,982,1252,23);ctx.stroke()}
+function texture(p){ctx.save();ctx.globalAlpha=.045;for(let y=0;y<POSTER_H;y+=9){ctx.fillStyle=y%18===0?p.accent:p.gold;ctx.fillRect(0,y,POSTER_W,1)}for(let x=0;x<POSTER_W;x+=13){ctx.fillStyle=p.ink;ctx.fillRect(x,0,1,POSTER_H)}ctx.restore()}
+function bg(p){const g=ctx.createLinearGradient(0,0,POSTER_W,POSTER_H);g.addColorStop(0,p.a);g.addColorStop(.48,p.soft);g.addColorStop(1,p.b);ctx.fillStyle=g;ctx.fillRect(0,0,POSTER_W,POSTER_H);texture(p)}
+function frame(p){ctx.strokeStyle=p.gold;ctx.lineWidth=5;rr(35,35,1010,1850,30);ctx.stroke();ctx.strokeStyle="#ffffff9c";ctx.lineWidth=2;rr(49,49,982,1822,23);ctx.stroke()}
 function hexA(hex,a){const h=String(hex||"#000").replace("#","");const full=h.length===3?h.split("").map(c=>c+c).join(""):h.slice(0,6);const n=parseInt(full,16);if(!isFinite(n))return "rgba(0,0,0,"+a+")";return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")"}
 function sigName(){if(!$("signature"))return "";return $("signature").value.trim();}
 function themeTitle(){return ($("occasionEn")&&$("occasionEn").value.trim())||""}
@@ -726,10 +729,10 @@ function drawNeonTube(text, x, y, color, font, align) {
 }
 function drawNeonWall() {
   ctx.fillStyle = "#120E14";
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
   const bw = 172, bh = 62;
   let row = 0;
-  for (let y = 0; y < 1350; y += bh) {
+  for (let y = 0; y < POSTER_H; y += bh) {
     const off = (row % 2) ? bw / 2 : 0;
     for (let x = -bw; x < 1120; x += bw) {
       ctx.fillStyle = row % 3 === 0 ? "rgba(42,26,30,0.55)" : "rgba(34,22,26,0.42)";
@@ -740,11 +743,11 @@ function drawNeonWall() {
     }
     row++;
   }
-  const soot = ctx.createRadialGradient(540, 620, 80, 540, 760, 980);
+  const soot = ctx.createRadialGradient(540, 1200, 100, 540, 1600, 1500);
   soot.addColorStop(0, "rgba(0,0,0,0.08)");
   soot.addColorStop(1, "rgba(0,0,0,0.62)");
   ctx.fillStyle = soot;
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
 }
 function resetDrawState() {
   ctx.shadowColor = "transparent";
@@ -838,17 +841,17 @@ function drawTornPaper(ctx, x, y, w, h) {
 // CANVAS NON-DESTRUCTIVE IMAGE FILTERS & JAALI BACKGROUND
 function drawBackgroundJaali(ctx) {
   ctx.save();
-  const glow = ctx.createRadialGradient(540, 220, 40, 540, 560, 980);
+  const glow = ctx.createRadialGradient(540, 480, 40, 540, 1100, 1600);
   glow.addColorStop(0, "rgba(239,138,69,0.24)");
   glow.addColorStop(0.28, "rgba(214,174,98,0.14)");
   glow.addColorStop(0.55, "rgba(27,141,147,0.1)");
   glow.addColorStop(1, "rgba(10,14,36,0.52)");
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
   ctx.strokeStyle = "rgba(214, 174, 98, 0.025)";
   ctx.lineWidth = 1;
   for (let x = 40; x < 1080; x += 220) {
-    for (let y = 40; y < 1350; y += 220) {
+    for (let y = 40; y < POSTER_H; y += 220) {
       ctx.beginPath();
       ctx.arc(x, y, 46, 0, Math.PI * 2);
       ctx.stroke();
@@ -1170,28 +1173,28 @@ function renderGlassmorphic(p_old) {
   const sans = '"Inter",sans-serif';
 
   ctx.fillStyle = paper;
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.018);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawGrain(0, 0, POSTER_W, POSTER_H, 0.018);
 
   ctx.strokeStyle = burgundy;
   ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(48, 118); ctx.lineTo(48, 48); ctx.lineTo(132, 48); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(48, 140); ctx.lineTo(48, 56); ctx.lineTo(132, 56); ctx.stroke();
   ctx.strokeStyle = coral;
-  ctx.beginPath(); ctx.moveTo(1032, 1232); ctx.lineTo(1032, 1302); ctx.lineTo(948, 1302); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1032, 1788); ctx.lineTo(1032, 1864); ctx.lineTo(948, 1864); ctx.stroke();
 
   const hasSig = !!sigName();
   const sigGap = 44;
-  const areaTop = 80;
-  const areaBottom = 1288;
-  const quoteMaxH = 980;
+  const areaTop = 160;
+  const areaBottom = 1840;
+  const quoteMaxH = 1480;
   const laid = layoutPhraseQuote(quote, 860, quoteMaxH, 66, 50, quoteFace, quoteFace, "700", "600", false, false, 1.34, 1.44);
   const headerSpan = 268 - 96;
   const blockH = headerSpan + laid.total + (hasSig ? sigGap + 28 : 16);
-  const shift = verticalBalanceOffset(blockH, areaBottom - areaTop, 0.46, 400);
-  const dateY = 96 + shift;
-  const themeY = 148 + shift;
-  const diamondY = 178 + shift;
-  const quoteY = 268 + shift;
+  const shift = verticalBalanceOffset(blockH, areaBottom - areaTop, 0.48, 720);
+  const dateY = 160 + shift;
+  const themeY = 212 + shift;
+  const diamondY = 242 + shift;
+  const quoteY = 332 + shift;
 
   ctx.save();
   ctx.textAlign = "center";
@@ -1222,8 +1225,18 @@ function renderGlassmorphic(p_old) {
 
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, charcoal, burgundy);
 
-  drawQuietSig(540, Math.min(cy + sigGap, 1270), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
-  drawQuietBrand(540, 1310, hexA("#6A5F57", 0.85), "center");
+  window.__posterQuoteMetrics = {
+    style: "Modern Glassmorphic",
+    quoteY: quoteY,
+    total: laid.total,
+    shift: shift,
+    blockH: blockH,
+    bottom: cy,
+    hasSig: hasSig
+  };
+
+  drawQuietSig(540, Math.min(cy + sigGap, 1840), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
+  drawQuietBrand(540, 1876, hexA("#6A5F57", 0.85), "center");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: cy - quoteY, fontSize: laid.blocks[0] ? laid.blocks[0].size : 48 } };
 }
 
@@ -1233,13 +1246,13 @@ function renderRoyalHeritage(p) {
   const quote = currentEnglishMessage();
   const ink = paperInk(p);
   ctx.fillStyle = p.b;
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawImageFill(p, 0, 0, 448, 1350, { zoom: 1.2, focus: 0.1, focusX: -0.28, treatment: "Spiritual Indigo", vignette: 0.2, duotone: p.b });
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawImageFill(p, 0, 0, 448, POSTER_H, { zoom: 1.2, focus: 0.1, focusX: -0.28, treatment: "Spiritual Indigo", vignette: 0.2, duotone: p.b });
   ctx.fillStyle = "#F4EFE6";
-  ctx.fillRect(448, 0, 632, 1350);
-  drawGrain(448, 0, 632, 1350, 0.022);
+  ctx.fillRect(448, 0, 632, POSTER_H);
+  drawGrain(448, 0, 632, POSTER_H, 0.022);
   ctx.fillStyle = hexA(p.gold, 0.55);
-  ctx.fillRect(448, 0, 1, 1350);
+  ctx.fillRect(448, 0, 1, POSTER_H);
   ctx.strokeStyle = hexA(p.gold, 0.38);
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(476, 48, 22, Math.PI, Math.PI * 1.5); ctx.stroke();
@@ -1267,8 +1280,8 @@ function renderClassic(p) {
   const quote = currentEnglishMessage();
   const ink = "#2A211C";
   ctx.fillStyle = "#F7F1E6";
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.045);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawGrain(0, 0, POSTER_W, POSTER_H, 0.045);
   ctx.strokeStyle = "rgba(42,33,28,0.16)";
   ctx.lineWidth = 1;
   ctx.strokeRect(40, 40, 1000, 1270);
@@ -1305,16 +1318,16 @@ function renderHeroFocus(p_old) {
   const family = classifyThemeFamily(posterThemeBlob());
   const themeColor = family === "peace" || family === "wisdom" ? teal : (family === "courage" ? orange : coral);
   const isLong = (quote || "").length > 115;
-  // Photo ~40% max; tighter lower fade so cream text area is more dominant
-  const imgH = isLong ? 510 : 535;
+  // Photo slightly taller in pixels than 4:5, but ~34% so cream/message stays primary
+  const imgH = isLong ? 640 : 680;
   const crop = compositionCrop();
   const p = { b: cream, a: "#FFE8C8", soft: cream };
   const serif = '"Playfair Display",Georgia,serif';
 
   ctx.fillStyle = cream;
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
 
-  drawImageFill(p, 0, 0, 1080, imgH, {
+  drawImageFill(p, 0, 0, POSTER_W, imgH, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Vibrant Daylight", vignette: 0.08,
     fadeBottom: 0.30, fadeColor: "rgba(255,242,222,0.98)",
@@ -1322,13 +1335,13 @@ function renderHeroFocus(p_old) {
   });
 
   ctx.fillStyle = cream;
-  ctx.fillRect(0, imgH, 1080, 1350 - imgH);
+  ctx.fillRect(0, imgH, POSTER_W, POSTER_H - imgH);
 
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = brown;
   ctx.font = '700 24px "Inter",sans-serif';
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, imgH + 48);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, imgH + 56);
   const theme = themeTitle();
   let themeSize = 42;
   ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
@@ -1337,21 +1350,21 @@ function renderHeroFocus(p_old) {
     ctx.font = '800 ' + themeSize + 'px "Inter",sans-serif';
   }
   ctx.fillStyle = themeColor;
-  ctx.fillText(theme.toUpperCase(), 540, imgH + 100);
+  ctx.fillText(theme.toUpperCase(), 540, imgH + 112);
   const themeBox = ctx.measureText(theme.toUpperCase());
-  const themeBottom = (imgH + 100) + Math.ceil(themeBox.actualBoundingBoxDescent || 4);
+  const themeBottom = (imgH + 112) + Math.ceil(themeBox.actualBoundingBoxDescent || 4);
   ctx.restore();
 
   const hasSig = !!sigName();
   const sigGap = 24;
   const sigSize = 24;
-  const sigMaxY = 1288;
-  const brandY = 1314;
+  const sigMaxY = 1848;
+  const brandY = 1876;
   const quoteEndLimit = hasSig ? (Math.min(sigMaxY, brandY - 18) - sigGap) : (brandY - 22);
-  const preferredQuoteY = imgH + 128;
+  const preferredQuoteY = imgH + 148;
   const laid = fitHumanPhraseQuote(quote, 900, preferredQuoteY, themeBottom, quoteEndLimit, serif);
   const freeH = Math.max(0, laid.maxH - laid.total);
-  const shift = verticalBalanceOffset(laid.total, laid.maxH, 0.40, 180);
+  const shift = verticalBalanceOffset(laid.total, laid.maxH, 0.42, 340);
   const quoteY = laid.quoteY + Math.min(shift, freeH);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
   const sigY = Math.min(cy + sigGap, sigMaxY);
@@ -1376,7 +1389,7 @@ function renderHeroFocus(p_old) {
   };
 
   drawQuietSig(540, sigY, teal, "center", 'italic 600 24px "Inter",sans-serif');
-  drawQuietBrand(1000, 1314, hexA(brown, 0.7), "right");
+  drawQuietBrand(1000, 1876, hexA(brown, 0.7), "right");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: Math.max(40, cy - quoteY), fontSize: laid.blocks[0] ? laid.blocks[0].size : 38 } };
 }
 
@@ -1386,7 +1399,7 @@ function renderEditorialPremium(p) {
   const quote = currentEnglishMessage();
   const ink = "#1C1916";
   ctx.fillStyle = "#F3EEE4";
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
 
   const isLong = quote.length > 115;
   // Copy-length-aware column proportions:
@@ -1396,12 +1409,12 @@ function renderEditorialPremium(p) {
   const typeX = photoW + 48;
   const typeW = 1080 - typeX - 48;
 
-  drawImageFill(p, 0, 0, photoW, 1350, { zoom: 1.16, focus: 0.04, focusX: -0.3, treatment: "Matte Botanical", vignette: 0.14 });
+  drawImageFill(p, 0, 0, photoW, POSTER_H, { zoom: 1.16, focus: 0.04, focusX: -0.3, treatment: "Matte Botanical", vignette: 0.14 });
 
   ctx.fillStyle = "#F3EEE4";
-  ctx.fillRect(photoW, 0, 1080 - photoW, 1350);
+  ctx.fillRect(photoW, 0, 1080 - photoW, POSTER_H);
   ctx.fillStyle = hexA(ink, 0.18);
-  ctx.fillRect(photoW, 0, 1, 1350);
+  ctx.fillRect(photoW, 0, 1, POSTER_H);
 
   // Vertical Date Treatment on Photo Column
   ctx.save();
@@ -1446,10 +1459,10 @@ function renderSacredArch(p_old) {
   const p = { b: indigo, a: "#12182E", soft: ivory, gold };
 
   ctx.fillStyle = indigo;
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
   drawBackgroundJaali(ctx);
-  // Arch ~38% of canvas (500px / 1350 ≈ 37%)
-  const archX = 70, archY = 24, archW = 940, archH = 500;
+  // Arch slightly taller in pixels, ~30% of 1920 — compact, not dominating
+  const archX = 70, archY = 40, archW = 940, archH = 580;
   const archBottom = archY + archH; // y=524
   const crop = compositionCrop();
   ctx.save();
@@ -1505,13 +1518,18 @@ function renderSacredArch(p_old) {
 
   // Quote begins just below theme with clear separation
   const quoteStartY = themeY + 52;
-  const quoteMaxH = 1262 - quoteStartY; // leave ~88px for sig+brand
-  // Arch dynamic fitting: preferred 46px, min 32px, tighter line-height
-  const en = fitBox(quote, 930, Math.min(quoteMaxH, 400), 46, 32, T.quoteFont, "600", 1.18);
   const hasSig = !!sigName();
+  const sigMaxY = 1848;
+  const brandY = 1876;
+  const quoteFloor = hasSig ? sigMaxY - 50 : brandY - 56;
+  const quoteMaxH = quoteFloor - quoteStartY;
+  // Arch dynamic fitting: preferred 46px, min 32px; extra height for 9:16 long copy
+  const en = fitBox(quote, 930, Math.min(quoteMaxH, 520), 46, 32, T.quoteFont, "600", 1.18);
   const blockH = en.totalHeight + (hasSig ? 50 : 12);
-  const areaH = (hasSig ? 1288 : 1262) - quoteStartY;
-  const shift = verticalBalanceOffset(blockH, areaH, 0.46, 260);
+  const areaH = quoteFloor - quoteStartY;
+  const free = Math.max(0, areaH - blockH);
+  const fill = blockH / Math.max(1, areaH);
+  const shift = (free < 40 || fill >= 0.58) ? 0 : Math.round(Math.min(free * 0.56, 640, free * 0.62));
   const drawY = quoteStartY + shift;
   drawLines(en, 75, drawY, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
   window.__posterQuoteMetrics = {
@@ -1524,8 +1542,8 @@ function renderSacredArch(p_old) {
     fontSize: en.fontSize,
     bottom: drawY + en.totalHeight
   };
-  drawQuietSig(75, Math.min(drawY + en.totalHeight + 24, 1288), sunrise, "left", 'italic 500 26px "Cinzel",Georgia,serif');
-  drawQuietBrand(992, 1312, hexA(ivory, 0.7), "right");
+  drawQuietSig(75, Math.min(drawY + en.totalHeight + 24, sigMaxY), sunrise, "left", 'italic 500 26px "Cinzel",Georgia,serif');
+  drawQuietBrand(992, brandY, hexA(ivory, 0.7), "right");
   return { en };
 }
 
@@ -1543,17 +1561,17 @@ function renderCinematicEditorial(p_old) {
   const sans = '"Inter",sans-serif';
 
   ctx.fillStyle = black;
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawImageFill(p, 0, 0, 1080, 1350, {
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawImageFill(p, 0, 0, POSTER_W, POSTER_H, {
     zoom: crop.zoom, focus: crop.focus, focusX: crop.focusX,
     treatment: "Campaign Contrast", vignette: 0.26,
-    fadeBottom: 0.7, fadeColor: "rgba(9, 13, 24, 0.94)",
+    fadeBottom: 0.62, fadeColor: "rgba(9, 13, 24, 0.94)",
     fadeLeft: 0.32,
     grain: 0.028
   });
 
   ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, 1080, 8);
+  ctx.fillRect(0, 0, POSTER_W, 8);
 
   ctx.save();
   ctx.textAlign = "center";
@@ -1579,10 +1597,10 @@ function renderCinematicEditorial(p_old) {
 
   const hasSig = !!sigName();
   const quoteStart = 236;
-  const quoteEnd = hasSig ? 1264 : 1296;
+  const quoteEnd = hasSig ? 1820 : 1856;
   const laid = layoutPhraseQuote(quote, 900, quoteEnd - quoteStart, 58, 36, bebas, sans, "400", "600", true, false, 0.98, 1.22);
   const blockH = laid.total + (hasSig ? 56 : 12);
-  const shift = verticalBalanceOffset(blockH, quoteEnd - quoteStart, 0.42, 280);
+  const shift = verticalBalanceOffset(blockH, quoteEnd - quoteStart, 0.44, 560);
   let cy = quoteStart + shift;
   laid.blocks.forEach((b, idx) => {
     if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 4;
@@ -1590,8 +1608,17 @@ function renderCinematicEditorial(p_old) {
     cy += b.lh;
   });
 
-  drawQuietSig(64, Math.min(cy + 32, 1296), accent, "left", 'italic 600 24px "Inter",sans-serif');
-  drawQuietBrand(1016, 1318, "rgba(247,244,238,0.55)", "right");
+  drawQuietSig(64, Math.min(cy + 32, 1856), accent, "left", 'italic 600 24px "Inter",sans-serif');
+  drawQuietBrand(1016, 1876, "rgba(247,244,238,0.55)", "right");
+  window.__posterQuoteMetrics = {
+    style: "Cinematic Editorial",
+    quoteStart: quoteStart,
+    quoteEnd: quoteEnd,
+    shift: shift,
+    total: laid.total,
+    bottom: cy,
+    hasSig: hasSig
+  };
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: laid.total, fontSize: laid.blocks[0] ? laid.blocks[0].size : 48 } };
 }
 
@@ -1603,8 +1630,8 @@ function renderMonumentalTypography(p) {
 
   // Soft Quiet Background with subtle grain
   ctx.fillStyle = p.soft;
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.03);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawGrain(0, 0, POSTER_W, POSTER_H, 0.03);
 
   const word = heroKeyword().toUpperCase();
   const len = word.length;
@@ -1678,8 +1705,8 @@ function renderPoetryCollage(p) {
   const quote = currentEnglishMessage();
   const ink = "#2A211C";
   ctx.fillStyle = "#EFE6D6";
-  ctx.fillRect(0, 0, 1080, 1350);
-  drawGrain(0, 0, 1080, 1350, 0.05);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
+  drawGrain(0, 0, POSTER_W, POSTER_H, 0.05);
   ctx.save();
   ctx.translate(92, 78);
   ctx.rotate(-0.012);
@@ -1720,7 +1747,7 @@ function renderGalleryEditorial(p) {
   const quote = currentEnglishMessage();
   const ink = "#1A1714";
   ctx.fillStyle = "#F7F4EE";
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, POSTER_W, POSTER_H);
   ctx.textAlign = "left";
   ctx.fillStyle = hexA(ink, 0.4);
   ctx.font = '600 11px "Inter",sans-serif';
@@ -1762,14 +1789,14 @@ function renderNeonTheme(p_old) {
   ctx.beginPath(); ctx.moveTo(36, 168); ctx.lineTo(36, 36); ctx.lineTo(250, 36); ctx.stroke();
   ctx.strokeStyle = cyan;
   ctx.shadowColor = cyan;
-  ctx.beginPath(); ctx.moveTo(1044, 1182); ctx.lineTo(1044, 1314); ctx.lineTo(830, 1314); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1044, 1740); ctx.lineTo(1044, 1880); ctx.lineTo(830, 1880); ctx.stroke();
   ctx.restore();
   resetDrawState();
 
   let msgSize = 48;
   let msgLines = wrapWordsToWidth(quote, 620, "800 " + msgSize + "px " + sans);
   let msgLh = Math.round(msgSize * 1.4);
-  while (msgLines.length * msgLh > 820 && msgSize > 34) {
+  while (msgLines.length * msgLh > 1200 && msgSize > 34) {
     msgSize -= 2;
     msgLines = wrapWordsToWidth(quote, 620, "800 " + msgSize + "px " + sans);
     msgLh = Math.round(msgSize * 1.4);
@@ -1794,11 +1821,11 @@ function renderNeonTheme(p_old) {
   const hasSig = !!sigName();
   msgLh = Math.round(msgSize * 1.4);
   const stackCore = 88 + 70 + 28 + (msgLines.length * msgLh) + (hasSig ? 54 : 12);
-  const areaTop = 96;
-  const areaBottom = 1288;
-  const stackShift = verticalBalanceOffset(stackCore, areaBottom - areaTop, 0.42, 320);
-  let y = 128 + stackShift;
-  const msgStart = 310 + stackShift;
+  const areaTop = 120;
+  const areaBottom = 1840;
+  const stackShift = verticalBalanceOffset(stackCore, areaBottom - areaTop, 0.42, 640);
+  let y = 168 + stackShift;
+  const msgStart = 360 + stackShift;
 
   const pinkBloom = ctx.createRadialGradient(540, y + 90, 20, 540, y + 90, 420);
   pinkBloom.addColorStop(0, "rgba(255,56,199,0.34)");
@@ -1806,11 +1833,11 @@ function renderNeonTheme(p_old) {
   ctx.fillStyle = pinkBloom;
   ctx.fillRect(0, y - 80, 1080, 520);
 
-  const cyanBloom = ctx.createRadialGradient(540, 720 + stackShift * 0.4, 16, 540, 820 + stackShift * 0.4, 520);
+  const cyanBloom = ctx.createRadialGradient(540, msgStart + 220, 16, 540, msgStart + 420, 620);
   cyanBloom.addColorStop(0, "rgba(52,229,255,0.18)");
   cyanBloom.addColorStop(1, "rgba(52,229,255,0)");
   ctx.fillStyle = cyanBloom;
-  ctx.fillRect(40, 280, 1000, 900);
+  ctx.fillRect(40, msgStart - 80, 1000, 1100);
 
   drawNeonTube(dateText, 540, y, cyan, "700 26px " + sans, "center");
   y += 88;
@@ -1845,11 +1872,18 @@ function renderNeonTheme(p_old) {
   const sigText = sigName();
   if (sigText) {
     y += 28;
-    drawNeonTube(sigText, 540, Math.min(y, 1276), yellow, 'italic 600 26px "Inter",sans-serif', "center");
+    drawNeonTube(sigText, 540, Math.min(y, 1840), yellow, 'italic 600 26px "Inter",sans-serif', "center");
   }
 
   resetDrawState();
-  drawQuietBrand(540, 1310, "rgba(249,252,255,0.42)", "center");
+  drawQuietBrand(540, 1876, "rgba(249,252,255,0.42)", "center");
+  window.__posterQuoteMetrics = {
+    style: "Neon",
+    stackShift: stackShift,
+    stackCore: stackCore,
+    bottom: y,
+    hasSig: hasSig
+  };
   return { en: { lines: msgLines, totalHeight: msgLines.length * msgLh, fontSize: msgSize } };
 }
 
@@ -1864,7 +1898,7 @@ function render() {
   ctx.shadowBlur = 0;
   ctx.filter = "none";
   ctx.beginPath();
-  ctx.clearRect(0, 0, 1080, 1350);
+  ctx.clearRect(0, 0, POSTER_W, POSTER_H);
   if(!rec) return;
   let pName = palette || "Vedic Indigo";
   let styleName = $("style") ? $("style").value : "Auto Theme";
@@ -1895,18 +1929,18 @@ function render() {
   } catch (err) {
     console.error("Render error:", err);
     ctx.fillStyle = "#FFFDF9";
-    ctx.fillRect(0, 0, 1080, 1350);
+    ctx.fillRect(0, 0, POSTER_W, POSTER_H);
     ctx.fillStyle = "#cc0000";
     ctx.font = "700 28px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText("Render Error: " + (err.message || "Unknown"), 540, 675);
+    ctx.fillText("Render Error: " + (err.message || "Unknown"), 540, 960);
   }
 
   const issues = layoutCheck(fits ? fits.en : null, null, $("signature") ? $("signature").value : "");
   generatedKey = key();
   if ($("download")) $("download").disabled = false;
   if ($("sharePoster")) $("sharePoster").disabled = false;
-  if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1350";
+  if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1920";
   syncStyleChips();
   } finally {
     _rendering = false;
