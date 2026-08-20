@@ -603,6 +603,16 @@ function isShortPosterQuote(text) {
   const words = t.split(/\s+/).filter(Boolean).length;
   return words <= 16 && t.length <= 90;
 }
+function verticalBalanceOffset(blockHeight, areaHeight, factor, maxOffset) {
+  const bh = Math.max(0, Number(blockHeight) || 0);
+  const ah = Math.max(1, Number(areaHeight) || 1);
+  const free = Math.max(0, ah - bh);
+  if (free < 40) return 0;
+  if (bh / ah >= 0.58) return 0;
+  const f = (factor == null) ? 0.38 : factor;
+  const cap = (maxOffset == null) ? Math.round(free * 0.52) : maxOffset;
+  return Math.round(Math.max(0, Math.min(free * f, cap, free * 0.52)));
+}
 function packHumanPhraseQuote(quote, maxW, leadSize, restSize, leadLh, restLh, extraGap, serif) {
   const phrases = splitQuotePhrases(quote);
   const blocks = [];
@@ -1169,11 +1179,25 @@ function renderGlassmorphic(p_old) {
   ctx.strokeStyle = coral;
   ctx.beginPath(); ctx.moveTo(1032, 1232); ctx.lineTo(1032, 1302); ctx.lineTo(948, 1302); ctx.stroke();
 
+  const hasSig = !!sigName();
+  const sigGap = 44;
+  const areaTop = 80;
+  const areaBottom = 1288;
+  const quoteMaxH = 980;
+  const laid = layoutPhraseQuote(quote, 860, quoteMaxH, 66, 50, quoteFace, quoteFace, "700", "600", false, false, 1.34, 1.44);
+  const headerSpan = 268 - 96;
+  const blockH = headerSpan + laid.total + (hasSig ? sigGap + 28 : 16);
+  const shift = verticalBalanceOffset(blockH, areaBottom - areaTop, 0.46, 400);
+  const dateY = 96 + shift;
+  const themeY = 148 + shift;
+  const diamondY = 178 + shift;
+  const quoteY = 268 + shift;
+
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = "#6A5F57";
   ctx.font = '600 24px ' + sans;
-  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, 96);
+  ctx.fillText((dt.full || dt.line).toUpperCase(), 540, dateY);
 
   const theme = themeTitle();
   let themeSize = 36;
@@ -1183,25 +1207,22 @@ function renderGlassmorphic(p_old) {
     ctx.font = '700 ' + themeSize + 'px ' + sans;
   }
   ctx.fillStyle = burgundy;
-  ctx.fillText(theme.toUpperCase(), 540, 148);
+  ctx.fillText(theme.toUpperCase(), 540, themeY);
   ctx.restore();
 
   ctx.strokeStyle = coral;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(540, 168);
-  ctx.lineTo(550, 178);
-  ctx.lineTo(540, 188);
-  ctx.lineTo(530, 178);
+  ctx.moveTo(540, diamondY - 10);
+  ctx.lineTo(550, diamondY);
+  ctx.lineTo(540, diamondY + 10);
+  ctx.lineTo(530, diamondY);
   ctx.closePath();
   ctx.stroke();
 
-  const quoteY = 268;
-  const quoteMaxH = 980;
-  const laid = fillPhraseQuote(quote, 860, quoteMaxH, 66, 50, 76, 58, quoteFace, quoteFace, "700", "600", false, false, 1.34, 1.44);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, charcoal, burgundy);
 
-  drawQuietSig(540, Math.min(cy + 44, 1270), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
+  drawQuietSig(540, Math.min(cy + sigGap, 1270), burgundy, "center", 'italic 500 28px "Cormorant Garamond",Georgia,serif');
   drawQuietBrand(540, 1310, hexA("#6A5F57", 0.85), "center");
   return { en: { lines: laid.blocks.map(b => b.line), totalHeight: cy - quoteY, fontSize: laid.blocks[0] ? laid.blocks[0].size : 48 } };
 }
@@ -1329,7 +1350,9 @@ function renderHeroFocus(p_old) {
   const quoteEndLimit = hasSig ? (Math.min(sigMaxY, brandY - 18) - sigGap) : (brandY - 22);
   const preferredQuoteY = imgH + 128;
   const laid = fitHumanPhraseQuote(quote, 900, preferredQuoteY, themeBottom, quoteEndLimit, serif);
-  const quoteY = laid.quoteY;
+  const freeH = Math.max(0, laid.maxH - laid.total);
+  const shift = verticalBalanceOffset(laid.total, laid.maxH, 0.40, 180);
+  const quoteY = laid.quoteY + Math.min(shift, freeH);
   const cy = drawCenteredQuoteBlocks(laid.blocks, 540, quoteY, brown, themeColor);
   const sigY = Math.min(cy + sigGap, sigMaxY);
   window.__posterQuoteMetrics = {
@@ -1341,6 +1364,7 @@ function renderHeroFocus(p_old) {
     total: laid.total,
     quoteY: quoteY,
     quoteMaxH: laid.maxH,
+    shift: quoteY - laid.quoteY,
     maxLineW: laid.maxLineW,
     firstAscent: laid.firstAscent,
     lastDescent: laid.lastDescent,
@@ -1484,14 +1508,11 @@ function renderSacredArch(p_old) {
   const quoteMaxH = 1262 - quoteStartY; // leave ~88px for sig+brand
   // Arch dynamic fitting: preferred 46px, min 32px, tighter line-height
   const en = fitBox(quote, 930, Math.min(quoteMaxH, 400), 46, 32, T.quoteFont, "600", 1.18);
-  // Short quotes: rebalance the quote block in the lower message area.
-  // Normal/long quotes stay top-anchored (unchanged).
-  let drawY = quoteStartY;
-  if (isShortPosterQuote(quote)) {
-    const slack = Math.max(0, quoteMaxH - en.totalHeight);
-    drawY = Math.round(quoteStartY + slack * 0.46);
-    drawY = Math.max(quoteStartY, Math.min(drawY, quoteStartY + slack));
-  }
+  const hasSig = !!sigName();
+  const blockH = en.totalHeight + (hasSig ? 50 : 12);
+  const areaH = (hasSig ? 1288 : 1262) - quoteStartY;
+  const shift = verticalBalanceOffset(blockH, areaH, 0.46, 260);
+  const drawY = quoteStartY + shift;
   drawLines(en, 75, drawY, ivory, "left", { color: "rgba(8,12,24,0.4)", blur: 8, y: 1 });
   window.__posterQuoteMetrics = {
     style: "Sacred Arch",
@@ -1515,7 +1536,7 @@ function renderCinematicEditorial(p_old) {
   const accent = "#E24A32";
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const p = { b: black, a: navy, soft: ivory };
+  const p = { b: black, a: navy, soft: ivory, accent: "#E24A32" };
   const crop = compositionCrop();
   const heroes = quoteHeroTokens(quote);
   const bebas = '"Bebas Neue","Inter",sans-serif';
@@ -1556,8 +1577,13 @@ function renderCinematicEditorial(p_old) {
   ctx.fillStyle = accent;
   ctx.fillRect(64, 186, 72, 6);
 
-  const laid = fillPhraseQuote(quote, 900, 920, 58, 36, 70, 46, bebas, sans, "400", "600", true, false, 0.98, 1.22);
-  let cy = 236;
+  const hasSig = !!sigName();
+  const quoteStart = 236;
+  const quoteEnd = hasSig ? 1264 : 1296;
+  const laid = layoutPhraseQuote(quote, 900, quoteEnd - quoteStart, 58, 36, bebas, sans, "400", "600", true, false, 0.98, 1.22);
+  const blockH = laid.total + (hasSig ? 56 : 12);
+  const shift = verticalBalanceOffset(blockH, quoteEnd - quoteStart, 0.42, 280);
+  let cy = quoteStart + shift;
   laid.blocks.forEach((b, idx) => {
     if (idx && b.isLead !== laid.blocks[idx - 1].isLead) cy += 4;
     drawMixedLine(b.line, 64, cy, b.size, b.weight, b.fontName, ivory, accent, heroes, b.upper, "left");
@@ -1765,11 +1791,14 @@ function renderNeonTheme(p_old) {
   }
 
   const dateText = (dt.full || dt.line).toUpperCase();
-  let y = 128;
-  const msgStart = 310;
-  const msgTarget = sigName() ? 1210 : 1248;
-  msgLh = Math.round((msgTarget - msgStart) / Math.max(1, msgLines.length));
-  msgLh = Math.max(Math.round(msgSize * 1.32), Math.min(msgLh, Math.round(msgSize * 3.05)));
+  const hasSig = !!sigName();
+  msgLh = Math.round(msgSize * 1.4);
+  const stackCore = 88 + 70 + 28 + (msgLines.length * msgLh) + (hasSig ? 54 : 12);
+  const areaTop = 96;
+  const areaBottom = 1288;
+  const stackShift = verticalBalanceOffset(stackCore, areaBottom - areaTop, 0.42, 320);
+  let y = 128 + stackShift;
+  const msgStart = 310 + stackShift;
 
   const pinkBloom = ctx.createRadialGradient(540, y + 90, 20, 540, y + 90, 420);
   pinkBloom.addColorStop(0, "rgba(255,56,199,0.34)");
@@ -1777,7 +1806,7 @@ function renderNeonTheme(p_old) {
   ctx.fillStyle = pinkBloom;
   ctx.fillRect(0, y - 80, 1080, 520);
 
-  const cyanBloom = ctx.createRadialGradient(540, 720, 16, 540, 820, 520);
+  const cyanBloom = ctx.createRadialGradient(540, 720 + stackShift * 0.4, 16, 540, 820 + stackShift * 0.4, 520);
   cyanBloom.addColorStop(0, "rgba(52,229,255,0.18)");
   cyanBloom.addColorStop(1, "rgba(52,229,255,0)");
   ctx.fillStyle = cyanBloom;
