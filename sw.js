@@ -1,5 +1,14 @@
-const CACHE = "daily-inspiration-v2-3-2-status-format-v1";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./data/content.js"];
+const CACHE = "daily-inspiration-v2-3-2-status-artwork-v1";
+const FILES = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./data/content.js",
+  "./artwork/BuiltIn/theme-kindness.jpg",
+  "./artwork/BuiltIn/theme-wisdom.jpg",
+  "./artwork/BuiltIn/theme-courage.jpg",
+  "./artwork/BuiltIn/theme-festival.jpg"
+];
 
 self.addEventListener("install", e => {
   self.skipWaiting();
