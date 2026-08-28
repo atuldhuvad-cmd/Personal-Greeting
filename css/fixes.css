@@ -31,7 +31,9 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .card-copy{position:absolute;left:8%;right:8%;z-index:4;white-space:normal;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 .card-copy h3{font-family:inherit;font-size:clamp(23px,6.2vw,38px);line-height:1.05;margin:0 0 14px;font-weight:800}
 .card-copy p{font-size:clamp(16px,4vw,24px);font-weight:650;line-height:1.25;margin:0;white-space:pre-wrap}
-.card-copy.text-panel{background:color-mix(in srgb,var(--bg) 76%,transparent);border:1px solid #ffffff55;border-radius:18px;padding:18px 14px;box-shadow:0 14px 35px #0004;backdrop-filter:blur(2px)}
+.card-copy.text-panel{background:#fff7eddf;border:1px solid #b4530940;border-radius:22px;padding:18px 16px;box-shadow:0 16px 38px #7f1d1d33;backdrop-filter:blur(2px);justify-content:flex-start}
+.card-copy.text-panel h3{margin-bottom:12px}
+.card-copy.text-panel p{font-weight:700}
 .card-preview.has-panel .placed-sticker{opacity:.78}
 .card-signature{font-size:clamp(17px,4.4vw,27px);font-weight:800;margin-top:24px}
 .card-date{position:absolute;left:7%;right:7%;top:5%;z-index:5;font:800 12px var(--font);opacity:.72;text-align:center}
