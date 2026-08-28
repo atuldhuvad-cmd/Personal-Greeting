@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" role="img" aria-label="Raksha Bandhan festive background">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset=".46" stop-color="#fed7aa"/>
+      <stop offset="1" stop-color="#b91c1c"/>
+    </linearGradient>
+    <radialGradient id="gold" cx=".5" cy=".45" r=".55">
+      <stop offset="0" stop-color="#fef3c7"/>
+      <stop offset=".55" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#92400e"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#7f1d1d" flood-opacity=".28"/>
+    </filter>
+    <pattern id="motif" width="96" height="96" patternUnits="userSpaceOnUse">
+      <circle cx="48" cy="48" r="2.5" fill="#b45309" opacity=".22"/>
+      <path d="M48 14 C58 30 66 38 82 48 C66 58 58 66 48 82 C38 66 30 58 14 48 C30 38 38 30 48 14Z" fill="none" stroke="#b45309" stroke-width="1.6" opacity=".14"/>
+    </pattern>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <rect width="1080" height="1350" fill="url(#motif)"/>
+  <circle cx="540" cy="214" r="118" fill="#fff7ed" opacity=".52"/>
+  <circle cx="540" cy="214" r="86" fill="url(#gold)" filter="url(#shadow)"/>
+  <circle cx="540" cy="214" r="46" fill="#dc2626"/>
+  <circle cx="540" cy="214" r="20" fill="#fef3c7"/>
+  <path d="M92 252 C248 175 388 184 454 206" fill="none" stroke="#b91c1c" stroke-width="18" stroke-linecap="round"/>
+  <path d="M626 206 C700 184 846 175 988 252" fill="none" stroke="#b91c1c" stroke-width="18" stroke-linecap="round"/>
+  <path d="M108 294 C254 226 384 228 452 244" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+  <path d="M628 244 C698 228 834 226 972 294" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+  <g opacity=".72" fill="#fff7ed">
+    <path d="M154 1032 c22 31 54 48 94 50 c-19 34 -53 54 -96 58 c20 35 18 72 -4 110 c-24 -30 -56 -47 -96 -49 c20 -34 52 -54 94 -59 c-20 -36 -18 -73 8 -110z"/>
+    <path d="M918 1032 c22 31 54 48 94 50 c-19 34 -53 54 -96 58 c20 35 18 72 -4 110 c-24 -30 -56 -47 -96 -49 c20 -34 52 -54 94 -59 c-20 -36 -18 -73 8 -110z"/>
+  </g>
+  <g transform="translate(82 1110)" filter="url(#shadow)">
+    <ellipse cx="70" cy="64" rx="62" ry="34" fill="#92400e"/>
+    <ellipse cx="70" cy="52" rx="58" ry="30" fill="#f59e0b"/>
+    <path d="M44 44 C66 -8 86 12 82 47 C70 58 56 57 44 44Z" fill="#fef3c7"/>
+    <path d="M60 41 C70 13 78 24 75 45 C70 50 64 49 60 41Z" fill="#f97316"/>
+  </g>
+  <g transform="translate(846 1110)" filter="url(#shadow)">
+    <ellipse cx="70" cy="64" rx="62" ry="34" fill="#92400e"/>
+    <ellipse cx="70" cy="52" rx="58" ry="30" fill="#f59e0b"/>
+    <path d="M44 44 C66 -8 86 12 82 47 C70 58 56 57 44 44Z" fill="#fef3c7"/>
+    <path d="M60 41 C70 13 78 24 75 45 C70 50 64 49 60 41Z" fill="#f97316"/>
+  </g>
+  <rect x="66" y="64" width="948" height="1222" rx="54" fill="none" stroke="#fef3c7" stroke-width="6" opacity=".66"/>
+  <rect x="88" y="86" width="904" height="1178" rx="44" fill="none" stroke="#92400e" stroke-width="2" opacity=".22"/>
+</svg>
