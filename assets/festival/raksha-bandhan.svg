@@ -1,70 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" role="img" aria-label="Raksha Bandhan festive poster background">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
   <defs>
-    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fffaf0"/>
-      <stop offset=".42" stop-color="#ffe2b8"/>
-      <stop offset="1" stop-color="#d43b2f"/>
+    <linearGradient id="r_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a0e17"/>
+      <stop offset="50%" stop-color="#7c2d12"/>
+      <stop offset="100%" stop-color="#991b1b"/>
     </linearGradient>
-    <linearGradient id="thread" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#9f1239"/>
-      <stop offset=".25" stop-color="#f59e0b"/>
-      <stop offset=".5" stop-color="#b91c1c"/>
-      <stop offset=".75" stop-color="#f59e0b"/>
-      <stop offset="1" stop-color="#9f1239"/>
-    </linearGradient>
-    <radialGradient id="rakhi" cx=".5" cy=".45" r=".58">
-      <stop offset="0" stop-color="#fff7ad"/>
-      <stop offset=".38" stop-color="#f59e0b"/>
-      <stop offset=".72" stop-color="#dc2626"/>
-      <stop offset="1" stop-color="#7f1d1d"/>
+    <radialGradient id="r_glow" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#f59e0b" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#ea580c" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#4a0e17" stop-opacity="0"/>
     </radialGradient>
-    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#7f1d1d" flood-opacity=".24"/>
-    </filter>
-    <pattern id="tiny" width="84" height="84" patternUnits="userSpaceOnUse">
-      <circle cx="42" cy="42" r="3" fill="#b45309" opacity=".18"/>
-      <path d="M42 15c9 14 17 20 31 27-14 7-22 14-31 27-9-13-17-20-31-27 14-7 22-13 31-27z" fill="none" stroke="#b45309" stroke-width="1.4" opacity=".12"/>
-    </pattern>
+    <linearGradient id="silk_thread" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#991b1b"/>
+      <stop offset="25%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#dc2626"/>
+      <stop offset="75%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <radialGradient id="gold_rakhi" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="25%" stop-color="#fef08a"/>
+      <stop offset="60%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </radialGradient>
+    <radialGradient id="flame_glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#fde047"/>
+      <stop offset="75%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="1080" height="1350" fill="url(#paper)"/>
-  <rect width="1080" height="1350" fill="url(#tiny)" opacity=".78"/>
-  <rect x="52" y="48" width="976" height="1254" rx="54" fill="none" stroke="#fff7ed" stroke-width="8" opacity=".75"/>
-  <rect x="78" y="74" width="924" height="1202" rx="42" fill="none" stroke="#8a1c1c" stroke-width="2.5" opacity=".28"/>
-  <path d="M80 250 C230 164 373 158 452 192" fill="none" stroke="url(#thread)" stroke-width="18" stroke-linecap="round" filter="url(#softShadow)"/>
-  <path d="M628 192 C707 158 850 164 1000 250" fill="none" stroke="url(#thread)" stroke-width="18" stroke-linecap="round" filter="url(#softShadow)"/>
-  <path d="M88 286 C232 214 374 210 450 232" fill="none" stroke="#fff7ad" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-  <path d="M630 232 C706 210 848 214 992 286" fill="none" stroke="#fff7ad" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-  <g transform="translate(540 212)" filter="url(#softShadow)">
-    <circle r="116" fill="#fff7ed" opacity=".82"/>
-    <circle r="94" fill="url(#rakhi)"/>
-    <circle r="60" fill="#facc15"/>
-    <circle r="34" fill="#b91c1c"/>
-    <circle r="14" fill="#fff7ed"/>
-    <g fill="#fff7ed" opacity=".95">
-      <circle cx="0" cy="-76" r="8"/>
-      <circle cx="54" cy="-54" r="8"/>
-      <circle cx="76" cy="0" r="8"/>
-      <circle cx="54" cy="54" r="8"/>
-      <circle cx="0" cy="76" r="8"/>
-      <circle cx="-54" cy="54" r="8"/>
-      <circle cx="-76" cy="0" r="8"/>
-      <circle cx="-54" cy="-54" r="8"/>
+
+  <rect width="800" height="500" fill="url(#r_bg)"/>
+  <circle cx="400" cy="220" r="270" fill="url(#r_glow)"/>
+
+  <!-- Brother & Sister Celebrating (Silhouettes / Stylized Art on Left & Right) -->
+  <!-- Sister tying Rakhi on Brother's wrist -->
+  <g transform="translate(180, 240) scale(0.9)">
+    <!-- Sister Silhouette -->
+    <path d="M-80,120 Q-90,40 -60,0 Q-40,-30 -20,-10 Q-30,40 -40,120 Z" fill="#fff7ed" opacity="0.85"/>
+    <circle cx="-50" cy="-25" r="22" fill="#fff7ed" opacity="0.9"/>
+    <path d="M-30,-20 Q-10,-10 20,10 Q5,30 -20,20 Z" fill="#fff7ed" opacity="0.85"/> <!-- Sister's arm reaching forward -->
+  </g>
+  <g transform="translate(620, 240) scale(0.9) scale(-1, 1)">
+    <!-- Brother Silhouette with wrist forward -->
+    <path d="M-80,120 Q-90,30 -60,-10 Q-40,-40 -20,-20 Q-30,40 -40,120 Z" fill="#fff7ed" opacity="0.85"/>
+    <circle cx="-50" cy="-35" r="24" fill="#fff7ed" opacity="0.9"/>
+    <path d="M-30,-15 Q-10,-5 25,10 Q10,30 -15,15 Z" fill="#fff7ed" opacity="0.85"/> <!-- Brother's arm reaching forward -->
+  </g>
+
+  <!-- Big Central Ornate Rakhi with Silk Threads -->
+  <!-- Silk Thread Waves -->
+  <path d="M30,220 C160,140 280,150 340,210" fill="none" stroke="url(#silk_thread)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M460,210 C520,150 640,140 770,220" fill="none" stroke="url(#silk_thread)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M40,240 C170,170 270,170 330,225" fill="none" stroke="#fef08a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M470,225 C530,170 630,170 760,240" fill="none" stroke="#fef08a" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Golden Centerpiece Rakhi Medallion -->
+  <g transform="translate(400, 210)">
+    <!-- Outer Golden Floral Petals -->
+    <circle r="95" fill="#facc15" stroke="#b45309" stroke-width="3"/>
+    <circle r="82" fill="#dc2626"/>
+    <!-- Petals Ring -->
+    <g fill="#fef08a">
+      <circle cx="0" cy="-72" r="10"/>
+      <circle cx="51" cy="-51" r="10"/>
+      <circle cx="72" cy="0" r="10"/>
+      <circle cx="51" cy="51" r="10"/>
+      <circle cx="0" cy="72" r="10"/>
+      <circle cx="-51" cy="51" r="10"/>
+      <circle cx="-72" cy="0" r="10"/>
+      <circle cx="-51" cy="-51" r="10"/>
+    </g>
+    <!-- Inner Golden Circle -->
+    <circle r="60" fill="url(#gold_rakhi)"/>
+    <circle r="44" fill="#991b1b"/>
+    <!-- Sacred Auspicious Center Symbol / Kalash / Swastik -->
+    <circle r="26" fill="#fef08a" stroke="#b45309" stroke-width="2"/>
+    <circle r="12" fill="#dc2626"/>
+    <circle r="5" fill="#ffffff"/>
+  </g>
+
+  <!-- Traditional Pooja Thali (Bottom Center) -->
+  <g transform="translate(400, 410)">
+    <!-- Thali Plate -->
+    <ellipse cx="0" cy="20" rx="220" ry="48" fill="#78350f" stroke="#fbbf24" stroke-width="4"/>
+    <ellipse cx="0" cy="16" rx="195" ry="38" fill="#b45309"/>
+    <ellipse cx="0" cy="14" rx="170" ry="30" fill="#fef08a"/>
+
+    <!-- Glowing Clay Diya on Thali -->
+    <g transform="translate(0, -5)">
+      <ellipse cx="0" cy="18" rx="35" ry="12" fill="#78350f"/>
+      <path d="M-30,16 Q0,38 30,16 Q0,2 -30,16 Z" fill="#ea580c" stroke="#fbbf24" stroke-width="2"/>
+      <path d="M0,14 Q-12,-15 0,-40 Q12,-15 0,14 Z" fill="url(#flame_glow)"/>
+      <circle cx="0" cy="-10" r="6" fill="#fff"/>
+    </g>
+
+    <!-- Roli & Chawal Bowls (Kumkum & Rice) -->
+    <g transform="translate(-90, 8)">
+      <ellipse cx="0" cy="8" rx="26" ry="12" fill="#78350f"/>
+      <ellipse cx="0" cy="6" rx="22" ry="9" fill="#dc2626"/> <!-- Bright Red Kumkum -->
+    </g>
+    <g transform="translate(-45, 14)">
+      <ellipse cx="0" cy="6" rx="20" ry="10" fill="#78350f"/>
+      <ellipse cx="0" cy="4" rx="17" ry="7" fill="#ffffff"/> <!-- White Sacred Rice -->
+    </g>
+
+    <!-- Traditional Festive Sweets (Laddoo / Kaju Katli) -->
+    <g transform="translate(75, 10)">
+      <circle cx="-15" cy="5" r="11" fill="#f59e0b"/>
+      <circle cx="10" cy="3" r="11" fill="#fbbf24"/>
+      <circle cx="0" cy="-6" r="11" fill="#f59e0b"/>
     </g>
   </g>
-  <g opacity=".24" fill="#7f1d1d">
-    <path d="M145 405c34 50 83 78 147 83-33 53-82 84-148 92 34 54 32 112-7 174-37-49-86-77-150-82 33-54 81-84 146-92-33-56-29-114 12-175z"/>
-    <path d="M935 405c-34 50-83 78-147 83 33 53 82 84 148 92-34 54-32 112 7 174 37-49 86-77 150-82-33-54-81-84-146-92 33-56 29-114-12-175z"/>
-  </g>
-  <g transform="translate(92 1112)" filter="url(#softShadow)">
-    <ellipse cx="76" cy="72" rx="66" ry="34" fill="#7f1d1d"/>
-    <ellipse cx="76" cy="58" rx="61" ry="30" fill="#f59e0b"/>
-    <path d="M50 48C74-8 96 11 91 51c-12 13-28 13-41-3z" fill="#fff7ad"/>
-    <path d="M67 45c11-29 20-18 17 4-5 6-12 5-17-4z" fill="#fb923c"/>
-  </g>
-  <g transform="translate(838 1112)" filter="url(#softShadow)">
-    <ellipse cx="76" cy="72" rx="66" ry="34" fill="#7f1d1d"/>
-    <ellipse cx="76" cy="58" rx="61" ry="30" fill="#f59e0b"/>
-    <path d="M50 48C74-8 96 11 91 51c-12 13-28 13-41-3z" fill="#fff7ad"/>
-    <path d="M67 45c11-29 20-18 17 4-5 6-12 5-17-4z" fill="#fb923c"/>
+
+  <!-- Sparkles -->
+  <g fill="#fef08a" opacity="0.9">
+    <circle cx="280" cy="90" r="5"/>
+    <circle cx="520" cy="80" r="6"/>
+    <circle cx="160" cy="140" r="4"/>
+    <circle cx="640" cy="130" r="4"/>
   </g>
 </svg>

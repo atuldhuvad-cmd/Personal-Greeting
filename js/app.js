@@ -344,7 +344,7 @@ function renderTemplates() {
         <div class="template-thumb" style="background:${t.background}; color:${t.textColor};">
           <div class="thumb-badge" style="background:${t.accentColor || '#f59e0b'};">${badgeText}</div>
           <div class="thumb-center">
-            <span class="thumb-icon">${templateDecor(t)[0]}</span>
+            ${t.image ? `<img src="${t.image}" alt="" class="thumb-art-img">` : `<span class="thumb-icon">${templateDecor(t)[0]}</span>`}
             <span class="thumb-title">${escapeHtml(t.name.replace(/^(Diwali|Holi|Navratri|Uttarayan|Raksha Bandhan|Janmashtami|Ganesh Chaturthi|Dussehra|Bestu Varas|Independence Day|Valentine's Day|Christmas|Eid|New Year)\s*/i, ''))}</span>
           </div>
           ${miniPillars}
