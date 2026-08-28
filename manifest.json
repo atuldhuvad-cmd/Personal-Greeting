@@ -1,0 +1,14 @@
+{
+  "id": "./",
+  "name": "WishCraft Greeting Card Studio",
+  "short_name": "WishCraft",
+  "description": "Create, save and share personal greeting cards offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d111b",
+  "theme_color": "#111827",
+  "icons": [{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}],
+  "categories": ["lifestyle", "photo", "utilities"]
+}
