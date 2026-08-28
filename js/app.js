@@ -1025,24 +1025,24 @@ function paintCopy(x, d, w, h) {
     align = state.usingCustom ? state.custom.alignment : 'center',
     alignX = align === 'left' ? w * .1 : align === 'right' ? w * .9 : w / 2,
     max = w * .8,
-    top = h * copyTopPct() / 100,
+    hasArt = (d.image && !state.photo) || state.photo,
+    top = hasArt ? h * 0.38 : h * copyTopPct() / 100,
     bottom = h * .88,
     family = FONT_MAP[d.font] || 'sans-serif',
     scale = w / 360,
     l = state.layout;
 
-  x.fillStyle = d.textColor;
   x.textAlign = align;
   x.textBaseline = 'top';
-  let titleSize = l.titleSize * scale, bodySize = l.bodySize * scale, sigSize = Math.max(16, l.bodySize * .95) * scale, layout;
+  let titleSize = l.titleSize * scale * 0.92, bodySize = l.bodySize * scale * 0.92, sigSize = Math.max(16, l.bodySize * .9) * scale, layout;
 
   for (let i = 0; i < 24; i++) {
-    x.font = `700 ${titleSize}px ${family}`;
-    const titleLines = measureLines(x, cardTitle(), max);
+    x.font = `800 ${titleSize}px ${family}`;
+    const titleLines = measureLines(x, cardTitle(), max * 0.9);
     x.font = `600 ${bodySize}px ${family}`;
-    const bodyLines = measureLines(x, $('#message').value, max);
-    const total = titleLines.length * titleSize * 1.08 + bodyLines.length * bodySize * (l.lineHeight / 100) + (sender ? sigSize * 1.2 + 34 * scale : 0) + 18 * scale;
-    if (total <= bottom - top || bodySize <= 23) {
+    const bodyLines = measureLines(x, $('#message').value, max * 0.9);
+    const total = titleLines.length * titleSize * 1.15 + bodyLines.length * bodySize * (l.lineHeight / 100) + (sender ? sigSize * 1.2 + 30 * scale : 0) + 20 * scale;
+    if (total <= bottom - top || bodySize <= 18) {
       layout = { titleLines, bodyLines, total };
       break;
     }
@@ -1051,25 +1051,38 @@ function paintCopy(x, d, w, h) {
     sigSize *= .94;
   }
 
-  let y = d.panel ? top + 42 * scale : top + (bottom - top - (layout?.total || 0)) / 2;
+  let y = top + 20 * scale;
   if (d.panel) {
     x.save();
-    x.globalAlpha = .82;
-    x.fillStyle = d.textColor === '#fff7ed' || d.textColor === '#ffffff' ? '#111827' : '#fff7ed';
-    roundedPath(x, w * .085, top - 28 * scale, w * .83, (layout?.total || 0) + 86 * scale, 34 * scale);
+    const isDark = d.background && (d.background.includes('#0') || d.background.includes('#1') || d.background.includes('#2') || d.background.includes('#3') || d.background.includes('#4') || d.background.includes('#7f') || d.background.includes('#78') || d.background.includes('#45') || d.background.includes('#4a'));
+    x.fillStyle = isDark ? 'rgba(15, 6, 6, 0.75)' : 'rgba(255, 253, 250, 0.92)';
+    x.strokeStyle = d.border || (isDark ? '#fbbf24' : '#e2e8f0');
+    x.lineWidth = 3 * scale;
+    roundedPath(x, w * .07, top - 12 * scale, w * .86, (layout?.total || 0) + 48 * scale, 24 * scale);
     x.fill();
+    x.stroke();
     x.restore();
-    x.fillStyle = d.textColor;
+
+    // High contrast text
+    x.fillStyle = isDark ? '#fffdfa' : '#1e112a';
+  } else {
+    x.fillStyle = d.textColor || '#ffffff';
   }
 
-  x.font = `700 ${titleSize}px ${family}`;
-  y = drawLines(x, layout.titleLines, alignX, y, titleSize * 1.08);
-  y += 18 * scale;
+  // Draw Title
+  x.font = `800 ${titleSize}px ${family}`;
+  y = drawLines(x, layout.titleLines, alignX, y, titleSize * 1.15);
+  y += 14 * scale;
+
+  // Draw Body Message
   x.font = `600 ${bodySize}px ${family}`;
   y = drawLines(x, layout.bodyLines, alignX, y, bodySize * (l.lineHeight / 100));
+
+  // Draw Sender Signature
   if (sender) {
-    y += 28 * scale;
+    y += 20 * scale;
     x.font = `700 ${sigSize}px ${family}`;
+    x.fillStyle = d.accentColor || '#f59e0b';
     x.fillText(`— ${sender}`, alignX, y);
   }
 }
