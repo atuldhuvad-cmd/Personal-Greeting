@@ -1237,7 +1237,7 @@ function stickerStyle(s, i) {
 }
 
 function selectFestivalTemplate(name) {
-  const match = PRESET_TEMPLATES.find(t => t.festivals?.includes(name));
+  const match = PRESET_TEMPLATES.find(t => t.festivals?.includes(name) && t.styleType === 'poster') || PRESET_TEMPLATES.find(t => t.festivals?.includes(name));
   if (match) {
     state.template = match.id;
     state.usingCustom = false;
@@ -1357,10 +1357,12 @@ function loadImg(src) {
   return new Promise((res) => {
     if (!src) return res(null);
     const i = new Image();
-    i.crossOrigin = 'anonymous';
+    if (typeof location !== 'undefined' && location.protocol !== 'file:' && !src.startsWith('data:')) {
+      i.crossOrigin = 'anonymous';
+    }
     i.onload = () => res(i);
-    i.onerror = () => {
-      console.warn('Image load failed for:', src);
+    i.onerror = (e) => {
+      console.warn('Image load failed for:', src, e);
       res(null);
     };
     i.src = src;
