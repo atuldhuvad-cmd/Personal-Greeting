@@ -655,9 +655,27 @@ function bindActions() {
   $('#saveCard').onclick = () => saveCard('saved');
   $('#saveDraft').onclick = () => saveCard('draft');
   $('#downloadCard').onclick = async () => {
-    const blob = await makeImage();
-    downloadBlob(blob, `wishcraft-${Date.now()}.png`);
-    toast('High-resolution poster downloaded');
+    try {
+      const blob = await makeImage();
+      if (blob) {
+        downloadBlob(blob, `wishcraft-${Date.now()}.png`);
+        toast('High-resolution card downloaded');
+      } else {
+        throw new Error('Image creation failed');
+      }
+    } catch (err) {
+      console.warn('Download error fallback:', err);
+      try {
+        const c = $('#exportCanvas');
+        const a = document.createElement('a');
+        a.href = c.toDataURL('image/png');
+        a.download = `wishcraft-${Date.now()}.png`;
+        a.click();
+        toast('Card downloaded');
+      } catch (e) {
+        toast('Error downloading card: ' + (err.message || e.message));
+      }
+    }
   };
   $('#shareCard').onclick = shareCardImage;
   $('#whatsApp').onclick = shareWhatsAppCard;
@@ -798,11 +816,30 @@ async function makeImage() {
       x.globalAlpha = 1;
     }
     if (state.photo) {
-      const img = await loadImg(state.photo),
-        size = Math.min(c.width, c.height) * state.photoCfg.frameSize / 100,
-        px = (c.width - size) / 2,
-        py = c.height * state.photoCfg.frameY / 100;
-      paintPhoto(x, img, px, py, size);
+      const img = await loadImg(state.photo);
+      if (img) {
+        const size = Math.min(c.width, c.height) * state.photoCfg.frameSize / 100,
+          px = (c.width - size) / 2,
+          py = c.height * state.photoCfg.frameY / 100;
+        paintPhoto(x, img, px, py, size);
+      }
+    } else if (d.image) {
+      const img = await loadImg(d.image);
+      if (img) {
+        const artW = c.width * 0.78;
+        const artH = c.height * 0.23;
+        const px = (c.width - artW) / 2;
+        const py = c.height * 0.11;
+        x.save();
+        roundedPath(x, px, py, artW, artH, 24);
+        x.clip();
+        drawCoverImage(x, img, px, py, artW, artH);
+        x.restore();
+        x.strokeStyle = d.border || '#fbbf24';
+        x.lineWidth = 6;
+        roundedPath(x, px, py, artW, artH, 24);
+        x.stroke();
+      }
     }
     paintDecor(x, d, c.width, c.height);
     paintCopy(x, d, c.width, c.height);
@@ -820,7 +857,24 @@ async function makeImage() {
     x.globalAlpha = 1;
   }
 
-  return new Promise(r => c.toBlob(r, 'image/png', 1));
+  return new Promise((res) => {
+    try {
+      c.toBlob((blob) => {
+        if (blob) res(blob);
+        else {
+          const dataUrl = c.toDataURL('image/png');
+          fetch(dataUrl).then(r => r.blob()).then(res).catch(() => res(null));
+        }
+      }, 'image/png', 1);
+    } catch (e) {
+      try {
+        const dataUrl = c.toDataURL('image/png');
+        fetch(dataUrl).then(r => r.blob()).then(res).catch(() => res(null));
+      } catch (err) {
+        res(null);
+      }
+    }
+  });
 }
 
 async function paintPosterCanvas(x, d, w, h) {
@@ -1074,31 +1128,28 @@ async function paintBackground(x, d, w, h) {
   const custom = state.usingCustom ? state.custom : null;
   if (custom?.backgroundImage) {
     const img = await loadImg(custom.backgroundImage);
-    drawCoverImage(x, img, 0, 0, w, h);
+    if (img) drawCoverImage(x, img, 0, 0, w, h);
     x.fillStyle = '#0004';
     x.fillRect(0, 0, w, h);
     return;
   }
-  if (d.image) {
-    const img = await loadImg(d.image);
-    drawCoverImage(x, img, 0, 0, w, h);
-    if (d.overlay) {
-      x.fillStyle = d.overlay;
-      x.fillRect(0, 0, w, h);
-    }
-    return;
-  }
-  const colors = d.colors || [custom.color1, custom.color2];
+  const colors = d.colors || (custom ? [custom.color1, custom.color2] : ['#071426', '#1e2950']);
   if (custom?.backgroundType === 'solid') {
     x.fillStyle = custom.color1;
     x.fillRect(0, 0, w, h);
     return;
   }
-  const g = custom?.backgroundType === 'radial' ?
-    x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * .7) :
-    x.createLinearGradient(0, 0, w, h);
+  if (custom?.backgroundType === 'radial') {
+    const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * .7);
+    g.addColorStop(0, colors[1] || colors[0]);
+    g.addColorStop(1, colors[0]);
+    x.fillStyle = g;
+    x.fillRect(0, 0, w, h);
+    return;
+  }
+  const g = x.createLinearGradient(0, 0, w, h);
   g.addColorStop(0, colors[0]);
-  g.addColorStop(1, colors[1]);
+  g.addColorStop(1, colors[1] || colors[0]);
   x.fillStyle = g;
   x.fillRect(0, 0, w, h);
 }
@@ -1290,12 +1341,31 @@ function readImage(file, done) {
 }
 
 function loadImg(src) {
-  return new Promise((res, rej) => {
-    const i = new Image;
+  return new Promise((res) => {
+    if (!src) return res(null);
+    const i = new Image();
+    i.crossOrigin = 'anonymous';
     i.onload = () => res(i);
-    i.onerror = rej;
+    i.onerror = () => {
+      console.warn('Image load failed for:', src);
+      res(null);
+    };
     i.src = src;
   });
+}
+
+function drawCoverImage(x, img, dx, dy, dw, dh) {
+  if (!img || !img.width || !img.height) return;
+  const scale = Math.max(dw / img.width, dh / img.height);
+  const sw = dw / scale;
+  const sh = dh / scale;
+  const sx = (img.width - sw) / 2;
+  const sy = (img.height - sh) / 2;
+  try {
+    x.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  } catch (e) {
+    console.warn('drawCoverImage error:', e);
+  }
 }
 
 function downloadBlob(blob, name) {
