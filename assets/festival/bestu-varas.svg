@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="b_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14532d"/>
+      <stop offset="60%" stop-color="#166534"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <radialGradient id="b_glow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#facc15" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#14532d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#b_bg)"/>
+  <circle cx="400" cy="220" r="260" fill="url(#b_glow)"/>
+
+  <!-- Auspicious Kalash with Coconut and Mango Leaves -->
+  <g transform="translate(400, 260)">
+    <!-- Kalash Pot (Tambik/Loto) -->
+    <ellipse cx="0" cy="110" rx="110" ry="30" fill="#78350f"/>
+    <path d="M-90,90 Q-120,-10 -40,-40 L40,-40 Q120,-10 90,90 Z" fill="#b45309" stroke="#fbbf24" stroke-width="4"/>
+    <!-- Swastik on Kalash -->
+    <g stroke="#dc2626" stroke-width="6" stroke-linecap="round" transform="translate(0, 30)">
+      <line x1="0" y1="-25" x2="0" y2="25"/>
+      <line x1="-25" y1="0" x2="25" y2="0"/>
+      <line x1="0" y1="-25" x2="18" y2="-25"/>
+      <line x1="0" y1="25" x2="-18" y2="25"/>
+      <line x1="-25" y1="0" x2="-25" y2="-18"/>
+      <line x1="25" y1="0" x2="25" y2="18"/>
+    </g>
+    <!-- Mango Leaves (Aamra Pallav) -->
+    <path d="M-60,-40 Q-90,-100 -50,-120 Q-30,-70 -30,-40 Z" fill="#15803d" stroke="#22c55e" stroke-width="2"/>
+    <path d="M-30,-40 Q-40,-130 0,-150 Q10,-90 -10,-40 Z" fill="#16a34a" stroke="#4ade80" stroke-width="2"/>
+    <path d="M0,-40 Q30,-140 50,-130 Q40,-80 20,-40 Z" fill="#15803d" stroke="#22c55e" stroke-width="2"/>
+    <path d="M30,-40 Q80,-110 70,-100 Q50,-60 40,-40 Z" fill="#166534" stroke="#22c55e" stroke-width="2"/>
+    <!-- Coconut (Shreefal) with sacred red thread -->
+    <circle cx="0" cy="-60" r="45" fill="#78350f" stroke="#fbbf24" stroke-width="3"/>
+    <line x1="-40" y1="-60" x2="40" y2="-60" stroke="#dc2626" stroke-width="4"/>
+  </g>
+
+  <!-- Marigold Flower Garland (Toran) Floor -->
+  <g transform="translate(400, 430)">
+    <ellipse cx="0" cy="20" rx="280" ry="40" fill="#d97706" opacity="0.6"/>
+    <!-- Marigold Flowers -->
+    <circle cx="-160" cy="15" r="18" fill="#ea580c"/>
+    <circle cx="-110" cy="18" r="18" fill="#facc15"/>
+    <circle cx="-60" cy="20" r="18" fill="#f97316"/>
+    <circle cx="0" cy="22" r="20" fill="#facc15"/>
+    <circle cx="60" cy="20" r="18" fill="#f97316"/>
+    <circle cx="110" cy="18" r="18" fill="#facc15"/>
+    <circle cx="160" cy="15" r="18" fill="#ea580c"/>
+  </g>
+</svg>

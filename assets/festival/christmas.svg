@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="c_sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#021a0d"/>
+      <stop offset="50%" stop-color="#052e16"/>
+      <stop offset="100%" stop-color="#14532d"/>
+    </linearGradient>
+    <radialGradient id="c_star" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fef08a"/>
+      <stop offset="80%" stop-color="#facc15" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#166534" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#c_sky)"/>
+  <circle cx="400" cy="100" r="180" fill="url(#c_star)"/>
+
+  <!-- Shining Bethlehem Star -->
+  <polygon points="400,30 412,85 465,95 415,115 425,170 395,125 350,150 380,105 340,80 390,75" fill="#fef08a" filter="drop-shadow(0 0 12px #fde047)"/>
+
+  <!-- Christmas Tree in Center -->
+  <g transform="translate(400, 290)">
+    <polygon points="0,-120 70,-40 -70,-40" fill="#15803d" stroke="#86efac" stroke-width="2"/>
+    <polygon points="0,-60 100,30 -100,30" fill="#166534" stroke="#86efac" stroke-width="2"/>
+    <polygon points="0,10 130,110 -130,110" fill="#14532d" stroke="#86efac" stroke-width="2"/>
+    <!-- Trunk -->
+    <rect x="-20" y="110" width="40" height="40" fill="#78350f"/>
+    <!-- Glowing Ornaments -->
+    <circle cx="-30" cy="-60" r="8" fill="#ef4444"/>
+    <circle cx="25" cy="-55" r="7" fill="#fbbf24"/>
+    <circle cx="-55" cy="0" r="9" fill="#38bdf8"/>
+    <circle cx="45" cy="15" r="8" fill="#ec4899"/>
+    <circle cx="-80" cy="80" r="10" fill="#fbbf24"/>
+    <circle cx="80" cy="75" r="10" fill="#ef4444"/>
+    <circle cx="0" cy="60" r="9" fill="#facc15"/>
+  </g>
+
+  <!-- Gift Boxes -->
+  <g transform="translate(240, 420)">
+    <rect x="-35" y="-35" width="70" height="60" rx="4" fill="#dc2626" stroke="#fbbf24" stroke-width="2"/>
+    <line x1="0" y1="-35" x2="0" y2="25" stroke="#fbbf24" stroke-width="6"/>
+    <line x1="-35" y1="-5" x2="35" y2="-5" stroke="#fbbf24" stroke-width="6"/>
+  </g>
+  <g transform="translate(560, 420)">
+    <rect x="-30" y="-30" width="60" height="50" rx="4" fill="#0284c7" stroke="#fbbf24" stroke-width="2"/>
+    <line x1="0" y1="-30" x2="0" y2="20" stroke="#fbbf24" stroke-width="5"/>
+    <line x1="-30" y1="-5" x2="30" y2="-5" stroke="#fbbf24" stroke-width="5"/>
+  </g>
+</svg>

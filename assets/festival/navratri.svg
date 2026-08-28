@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="n_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2e0854"/>
+      <stop offset="60%" stop-color="#581c87"/>
+      <stop offset="100%" stop-color="#831843"/>
+    </linearGradient>
+    <radialGradient id="n_glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fde047" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#9333ea" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#n_bg)"/>
+  <circle cx="400" cy="250" r="280" fill="url(#n_glow)"/>
+
+  <!-- Garba Pot (Garbi / Diya Pot) with Sacred Holes -->
+  <g transform="translate(400, 320)">
+    <ellipse cx="0" cy="70" rx="90" ry="25" fill="#701a75"/>
+    <path d="M-80,60 Q-110,-20 -40,-60 L40,-60 Q110,-20 80,60 Z" fill="#b45309" stroke="#fde047" stroke-width="4"/>
+    <!-- Glowing holes -->
+    <circle cx="-40" cy="-10" r="7" fill="#fff" filter="drop-shadow(0 0 6px #ffcc00)"/>
+    <circle cx="0" cy="-15" r="8" fill="#fff" filter="drop-shadow(0 0 6px #ffcc00)"/>
+    <circle cx="40" cy="-10" r="7" fill="#fff" filter="drop-shadow(0 0 6px #ffcc00)"/>
+    <circle cx="-25" cy="20" r="7" fill="#fff" filter="drop-shadow(0 0 6px #ffcc00)"/>
+    <circle cx="25" cy="20" r="7" fill="#fff" filter="drop-shadow(0 0 6px #ffcc00)"/>
+    <!-- Diya flame on top -->
+    <path d="M0,-60 Q-25,-110 0,-140 Q25,-110 0,-60 Z" fill="#ffedd5" filter="drop-shadow(0 0 10px #f59e0b)"/>
+    <path d="M0,-60 Q-15,-95 0,-120 Q15,-95 0,-60 Z" fill="#facc15"/>
+  </g>
+
+  <!-- Crossed Dandiya Sticks (Left) -->
+  <g transform="translate(200, 240) rotate(35)">
+    <rect x="-140" y="-10" width="280" height="20" rx="10" fill="#f43f5e" stroke="#ffd700" stroke-width="3"/>
+    <circle cx="-120" cy="0" r="5" fill="#fff"/>
+    <circle cx="120" cy="0" r="5" fill="#fff"/>
+  </g>
+  <g transform="translate(200, 240) rotate(-35)">
+    <rect x="-140" y="-10" width="280" height="20" rx="10" fill="#06b6d4" stroke="#ffd700" stroke-width="3"/>
+    <circle cx="-120" cy="0" r="5" fill="#fff"/>
+    <circle cx="120" cy="0" r="5" fill="#fff"/>
+  </g>
+
+  <!-- Crossed Dandiya Sticks (Right) -->
+  <g transform="translate(600, 240) rotate(35)">
+    <rect x="-140" y="-10" width="280" height="20" rx="10" fill="#10b981" stroke="#ffd700" stroke-width="3"/>
+    <circle cx="-120" cy="0" r="5" fill="#fff"/>
+    <circle cx="120" cy="0" r="5" fill="#fff"/>
+  </g>
+  <g transform="translate(600, 240) rotate(-35)">
+    <rect x="-140" y="-10" width="280" height="20" rx="10" fill="#f59e0b" stroke="#ffd700" stroke-width="3"/>
+    <circle cx="-120" cy="0" r="5" fill="#fff"/>
+    <circle cx="120" cy="0" r="5" fill="#fff"/>
+  </g>
+</svg>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="60%" stop-color="#c2410c"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <radialGradient id="g_halo" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g_bg)"/>
+  <circle cx="400" cy="200" r="240" fill="url(#g_halo)"/>
+
+  <!-- Lord Ganesha Crown & Ears Silhouette Art -->
+  <g transform="translate(400, 220)">
+    <!-- Mukut (Crown) -->
+    <path d="M-60,-90 L0,-170 L60,-90 L40,-50 L-40,-50 Z" fill="#fbbf24" stroke="#78350f" stroke-width="3"/>
+    <circle cx="0" cy="-120" r="10" fill="#dc2626"/>
+    <!-- Head & Ears -->
+    <ellipse cx="-80" cy="-20" rx="45" ry="55" fill="#f97316" stroke="#fbbf24" stroke-width="3"/>
+    <ellipse cx="80" cy="-20" rx="45" ry="55" fill="#f97316" stroke="#fbbf24" stroke-width="3"/>
+    <ellipse cx="0" cy="-10" rx="60" ry="60" fill="#ea580c"/>
+    <!-- Tilak / Trishul mark -->
+    <path d="M-18,-45 L-18,-70 M18,-45 L18,-70 M0,-35 L0,-75" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="-40" r="5" fill="#fbbf24"/>
+    <!-- Trunk (Sond) curving left -->
+    <path d="M-15,10 Q-30,70 10,95 Q50,110 50,75 Q50,45 15,40" fill="none" stroke="#ea580c" stroke-width="24" stroke-linecap="round"/>
+    <path d="M-15,10 Q-30,70 10,95 Q50,110 50,75 Q50,45 15,40" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+    <!-- Modak in hand -->
+    <g transform="translate(50, 75) scale(0.65)">
+      <path d="M-25,15 Q0,-35 25,15 Q0,25 -25,15 Z" fill="#fef08a" stroke="#d97706" stroke-width="3"/>
+    </g>
+  </g>
+
+  <!-- Modak Thali (Bottom) -->
+  <g transform="translate(400, 420)">
+    <ellipse cx="0" cy="15" rx="180" ry="35" fill="#fef08a" stroke="#d97706" stroke-width="3"/>
+    <!-- Modaks -->
+    <path d="M-60,5 Q-40,-35 -20,5 Z" fill="#fbbf24"/>
+    <path d="M-20,10 Q0,-30 20,10 Z" fill="#facc15"/>
+    <path d="M20,5 Q40,-35 60,5 Z" fill="#fbbf24"/>
+    <path d="M-40,15 Q-20,-20 0,15 Z" fill="#fef08a"/>
+    <path d="M0,15 Q20,-20 40,15 Z" fill="#fef08a"/>
+  </g>
+</svg>

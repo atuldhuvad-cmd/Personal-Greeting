@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="v_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="60%" stop-color="#881337"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+    <radialGradient id="v_glow" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#fda4af" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#f43f5e" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#4c0519" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#v_bg)"/>
+  <circle cx="400" cy="220" r="260" fill="url(#v_glow)"/>
+
+  <!-- Big Glowing Romantic Heart -->
+  <g transform="translate(400, 220)">
+    <path d="M0,90 Q-120,-10 -60,-80 Q0,-70 0,-10 Q0,-70 60,-80 Q120,-10 0,90 Z" fill="#e11d48" stroke="#fecdd3" stroke-width="4" filter="drop-shadow(0 0 16px rgba(244,63,94,0.8))"/>
+    <path d="M0,70 Q-90,-10 -45,-60 Q0,-50 0,-10 Q0,-50 45,-60 Q90,-10 0,70 Z" fill="#f43f5e"/>
+  </g>
+
+  <!-- Blooming Velvet Red Roses -->
+  <g transform="translate(200, 360)">
+    <circle cx="0" cy="0" r="35" fill="#9f1239" stroke="#fda4af" stroke-width="2"/>
+    <circle cx="0" cy="0" r="22" fill="#be123c"/>
+    <circle cx="0" cy="0" r="10" fill="#e11d48"/>
+  </g>
+  <g transform="translate(600, 360)">
+    <circle cx="0" cy="0" r="35" fill="#9f1239" stroke="#fda4af" stroke-width="2"/>
+    <circle cx="0" cy="0" r="22" fill="#be123c"/>
+    <circle cx="0" cy="0" r="10" fill="#e11d48"/>
+  </g>
+</svg>

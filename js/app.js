@@ -390,6 +390,8 @@ function renderCard() {
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
     (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
+  const artSrc = state.photo || d.image;
+
   if (isPoster) {
     const festivalName = (d.festival || cardTitleText()).toUpperCase();
     const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
@@ -409,12 +411,17 @@ function renderCard() {
       <div class="poster-container">
         <header class="poster-header" style="background:${d.headerBg || d.accentColor || '#180928'}; color:${d.headerTextColor || '#ffffff'}">
           <div class="poster-main-title">${escapeHtml(festivalName)}</div>
-          <div class="poster-subtitle">${escapeHtml(subtitle)}</div>
+          <div class="poster-subtitle" style="color:${d.accentColor || '#fbbf24'}">${escapeHtml(subtitle)}</div>
         </header>
 
         <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}">
           ${date ? `<div class="poster-date">${escapeHtml(date)}</div>` : ''}
-          ${photoMarkup('card')}
+          
+          ${artSrc ? `
+            <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
+              <img src="${artSrc}" alt="${escapeHtml(festivalName)}" class="poster-art-img">
+            </div>
+          ` : photoMarkup('card')}
 
           <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px)">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
@@ -439,14 +446,24 @@ function renderCard() {
     `;
   } else {
     const copyTop = copyTopPct();
+    const badgeText = d.badge || 'FESTIVE CELEBRATION';
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
-      ${photoMarkup('card')}
-      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${copyTop}%;bottom:${credit ? '12' : '9'}%">
+      
+      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
+        <div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(badgeText)} ✨</div>
+        
+        ${artSrc ? `
+          <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
+            <img src="${artSrc}" alt="" class="card-art-img">
+          </div>
+        ` : photoMarkup('card')}
+
         <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
+        ${d.tagline ? `<div class="card-tagline-text"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
         ${sender ? `<div class="card-signature">— ${escapeHtml(sender)}</div>` : ''}
       </section>
       ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
@@ -846,13 +863,32 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 30;
   }
 
-  // Photo
+  // Photo or Traditional Artwork
   if (state.photo) {
     const img = await loadImg(state.photo);
     const photoSize = Math.min(w, h) * (state.photoCfg.frameSize / 100) * 1.1;
     const px = (w - photoSize) / 2;
     paintPhoto(x, img, px, currentY, photoSize);
-    currentY += photoSize + 30;
+    currentY += photoSize + 25;
+  } else if (d.image) {
+    try {
+      const img = await loadImg(d.image);
+      const artW = w * 0.88;
+      const artH = h * 0.24;
+      const px = (w - artW) / 2;
+      x.save();
+      roundedPath(x, px, currentY, artW, artH, 20);
+      x.clip();
+      drawCoverImage(x, img, px, currentY, artW, artH);
+      x.restore();
+      x.strokeStyle = (d.accentColor || '#ea580c') + '55';
+      x.lineWidth = 4;
+      roundedPath(x, px, currentY, artW, artH, 20);
+      x.stroke();
+      currentY += artH + 25;
+    } catch(e) {
+      currentY += 15;
+    }
   } else {
     currentY += 15;
   }
