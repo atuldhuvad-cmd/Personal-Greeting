@@ -1,3 +1,6 @@
 .chrome-*/
 .edge-test/
 wishcraft-home*.png
+
+# Local Netlify folder
+.netlify
