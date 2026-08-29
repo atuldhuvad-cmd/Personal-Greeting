@@ -383,8 +383,6 @@ function renderCard() {
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
     (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
-  const artSrc = state.photo || d.image;
-
   if (isPoster) {
     const festivalName = (d.festival || cardTitleText()).toUpperCase();
     const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
@@ -399,6 +397,7 @@ function renderCard() {
       </div>
     `).join('');
 
+    const posterPhotoClear = state.photo ? Math.max(12, Math.min(72, state.photoCfg.frameY + state.photoCfg.frameSize + 5)) : 0;
     preview.innerHTML = `
       ${pattern}
       <div class="poster-container">
@@ -407,16 +406,17 @@ function renderCard() {
           <div class="poster-subtitle" style="color:${d.accentColor || '#fbbf24'}">${escapeHtml(subtitle)}</div>
         </header>
 
-        <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}">
+        <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}; position:relative">
+          ${state.photo ? photoMarkup('card') : ''}
           ${date ? `<div class="poster-date">${escapeHtml(date)}</div>` : ''}
-          
-          ${artSrc ? `
+
+          ${!state.photo && d.image ? `
             <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
-              <img src="${artSrc}" alt="${escapeHtml(festivalName)}" class="poster-art-img" style="${state.photo ? photoImgStyle() : ''}">
+              <img src="${d.image}" alt="${escapeHtml(festivalName)}" class="poster-art-img">
             </div>
           ` : ''}
 
-          <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px)">
+          <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px); margin-top:${posterPhotoClear}%">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
             <p class="poster-message" style="font-size:${l.bodySize}px; line-height:${l.lineHeight / 100}; color:${d.textColor}">${escapeHtml($('#message').value)}</p>
             ${sender ? `<div class="poster-sender" style="color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
@@ -443,13 +443,14 @@ function renderCard() {
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
+      ${state.photo ? photoMarkup('card') : ''}
 
       <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
         ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
 
-        ${artSrc ? `
+        ${!state.photo && d.image ? `
           <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
-            <img src="${artSrc}" alt="" class="card-art-img" style="${state.photo ? photoImgStyle() : ''}">
+            <img src="${d.image}" alt="" class="card-art-img">
           </div>
         ` : ''}
 
@@ -469,12 +470,6 @@ function renderCard() {
 function openPreview() {
   renderCard();
   openModal('previewModal');
-}
-
-function photoImgStyle() {
-  if (!state.photo) return '';
-  const p = state.photoCfg, posX = focusPct(p.panX), posY = focusPct(p.panY);
-  return `object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${p.zoom / 100});opacity:${p.opacity / 100}`;
 }
 
 function photoMarkup(mode) {
