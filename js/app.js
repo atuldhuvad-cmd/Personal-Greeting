@@ -1,11 +1,11 @@
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)], KEYS = { settings: 'wishcraft_settings_v2', cards: 'wishcraft_cards_v2', draft: 'wishcraft_working_v2' };
 const state = {
-  occasion: 'festival',
+  occasion: 'birthday',
   tone: 'joyful',
   messageIndex: 0,
-  fields: { festival: 'Diwali' },
-  template: 'diwali-poster',
-  festivalFilter: 'Diwali',
+  fields: {},
+  template: 'festive',
+  festivalFilter: 'General',
   photo: null,
   photoCfg: { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true },
   layout: { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125 },
@@ -22,11 +22,6 @@ const state = {
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-  const fixes = document.createElement('link');
-  fixes.rel = 'stylesheet';
-  fixes.href = 'css/fixes.css';
-  document.head.append(fixes);
-
   setupCreatePhotoPanel();
   setupDeveloperSettings();
   setupCardDate();
@@ -122,11 +117,9 @@ function normalizeState() {
   if (state.occasion === 'festival' && !state.fields.festival) {
     state.fields.festival = 'Diwali';
   }
-  if (!state.festivalFilter) {
-    state.festivalFilter = state.occasion === 'festival' ? (state.fields.festival || 'Diwali') : 'all';
-  }
+  state.festivalFilter = state.occasion === 'festival' ? (state.fields.festival || 'Diwali') : 'General';
   if (!PRESET_TEMPLATES.some(t => t.id === state.template)) {
-    state.template = 'diwali-poster';
+    state.template = state.occasion === 'festival' ? 'diwali-poster' : 'festive';
   }
 }
 
@@ -213,7 +206,7 @@ function renderOccasions() {
       state.festivalFilter = 'Diwali';
       selectFestivalTemplate('Diwali');
     } else {
-      state.festivalFilter = 'all';
+      state.festivalFilter = 'General';
       if (!PRESET_TEMPLATES.some(t => t.id === state.template && !t.festivals)) {
         state.template = 'festive';
       }
@@ -419,9 +412,9 @@ function renderCard() {
           
           ${artSrc ? `
             <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
-              <img src="${artSrc}" alt="${escapeHtml(festivalName)}" class="poster-art-img">
+              <img src="${artSrc}" alt="${escapeHtml(festivalName)}" class="poster-art-img" style="${state.photo ? photoImgStyle() : ''}">
             </div>
-          ` : photoMarkup('card')}
+          ` : ''}
 
           <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px)">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
@@ -446,20 +439,19 @@ function renderCard() {
     `;
   } else {
     const copyTop = copyTopPct();
-    const badgeText = d.badge || 'FESTIVE CELEBRATION';
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
-      
+
       <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
-        <div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(badgeText)} ✨</div>
-        
+        ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
+
         ${artSrc ? `
           <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
-            <img src="${artSrc}" alt="" class="card-art-img">
+            <img src="${artSrc}" alt="" class="card-art-img" style="${state.photo ? photoImgStyle() : ''}">
           </div>
-        ` : photoMarkup('card')}
+        ` : ''}
 
         <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
@@ -477,6 +469,12 @@ function renderCard() {
 function openPreview() {
   renderCard();
   openModal('previewModal');
+}
+
+function photoImgStyle() {
+  if (!state.photo) return '';
+  const p = state.photoCfg, posX = focusPct(p.panX), posY = focusPct(p.panY);
+  return `object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${p.zoom / 100});opacity:${p.opacity / 100}`;
 }
 
 function photoMarkup(mode) {
@@ -1224,7 +1222,8 @@ function templateDecor(t) {
 
 function decorationsForDesign(d) {
   if (d.decor) return d.decor;
-  return (d.stickers?.length ? d.stickers : occasionDecor()).map((emoji, i) => decorItem(emoji, i));
+  const stickers = d.festivals ? (d.stickers?.length ? d.stickers : occasionDecor()) : occasionDecor();
+  return stickers.map((emoji, i) => decorItem(emoji, i));
 }
 
 function decorItem(emoji, i) {

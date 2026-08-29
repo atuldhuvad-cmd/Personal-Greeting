@@ -375,7 +375,9 @@ function generatedMessage(occasion, tone, data, index = 0) {
   }[tone] || [''];
 
   const opener = toneOpeners[index % toneOpeners.length] || '';
-  return `${opener}${occLine}${detail}`.replace(/\s+/g, ' ').trim();
+  const endings = ['May every moment shine.', 'Celebrate beautifully.', 'May today become a truly memorable day.', 'Here’s to everything wonderful ahead.', 'With every good wish for today and beyond.'];
+  const ending = endings[index % endings.length];
+  return `${opener}${occLine}${detail} ${ending}`.replace(/\s+/g, ' ').trim();
 }
 
 function ordinal(value) {
