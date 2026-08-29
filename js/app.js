@@ -384,7 +384,7 @@ function renderCard() {
     (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
   if (isPoster) {
-    const festivalName = (d.festival || cardTitleText()).toUpperCase();
+    const festivalName = (festivalHeadline(d.festival) || cardTitleText()).toUpperCase();
     const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
     const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
     const pillarsHtml = (d.pillars || []).map(p => `
@@ -871,7 +871,7 @@ async function makeImage() {
 }
 
 async function paintPosterCanvas(x, d, w, h) {
-  const festivalName = (d.festival || cardTitleText()).toUpperCase();
+  const festivalName = (festivalHeadline(d.festival) || cardTitleText()).toUpperCase();
   const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
   const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
   const l = state.layout, date = cardDateText(), sender = data().sender, credit = footerCredit();
@@ -1238,13 +1238,22 @@ function selectFestivalTemplate(name) {
   }
 }
 
+// Card-headline-only display names. The Festival selector/category/filter labels
+// keep the full name (e.g. FESTIVAL_OPTIONS, template category text) -- only the
+// generated greeting headline (live preview, PNG export, poster banner) is shortened.
+const FESTIVAL_HEADLINE_OVERRIDES = { 'Bestu Varas (Gujarati New Year)': 'New Year' };
+function festivalHeadline(name) {
+  return FESTIVAL_HEADLINE_OVERRIDES[name] || name;
+}
+
 function cardTitleText() {
   const d = data();
-  return d.festival || 'Festival';
+  return festivalHeadline(d.festival) || 'Festival';
 }
 
 function cardTitle() {
   const d = data(), name = subjectFor(state.occasion, d);
+  const festivalName = festivalHeadline(d.festival) || 'Festival';
   return {
     birthday: `Happy Birthday, ${name}!`,
     anniversary: `Happy Anniversary, ${name}!`,
@@ -1254,7 +1263,7 @@ function cardTitle() {
     graduation: `Congratulations, ${name}!`,
     retirement: `Happy Retirement, ${name}!`,
     getwell: `Get Well Soon, ${name}!`,
-    festival: d.recipient ? `Happy ${d.festival || 'Festival'}, ${name}!` : `Happy ${d.festival || 'Festival'}!`,
+    festival: d.recipient ? `Happy ${festivalName}, ${name}!` : `Happy ${festivalName}!`,
     thanks: `Thank You, ${name}!`,
     custom: `${d.title || 'Special Wishes'}, ${name}!`
   }[state.occasion] || `Best Wishes, ${name}!`;
