@@ -440,22 +440,14 @@ function renderCard() {
   const d = design(), preview = $('#cardPreview'), decor = decorationsForDesign(d), sender = data().sender, l = state.layout, credit = footerCredit(), date = cardDateText();
   const isPoster = !state.usingCustom && d.styleType === 'poster';
   const isHero = !state.usingCustom && !!d.heroLayout;
-  const isGrow = !state.usingCustom && !!d.growCopy && !isPoster && !isHero;
+  const isFit = !state.usingCustom && !!d.fitCopy && !isPoster && !isHero;
 
-  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''} ${isGrow ? 'grow-copy' : ''}`;
+  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''} ${isFit ? 'fit-copy-card' : ''}`;
   preview.classList.toggle('has-photo', !!state.photo);
   preview.classList.toggle('has-panel', !!d.panel && !isPoster);
   preview.style.cssText = isHero
     ? `background:#12100f center/cover no-repeat url(${d.backgroundImage}); color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'Georgia, serif'}; text-align:center; aspect-ratio:4/5`
-    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${isGrow ? 'auto' : state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
-  if (isGrow) {
-    // aspect-ratio hard-clamps height even when content needs more room, so give
-    // grow-copy templates an explicit min-height (from their own current rendered
-    // width) instead -- .card-copy is then laid out in normal flow below and the
-    // box grows taller automatically for whatever content it actually contains.
-    const w = preview.getBoundingClientRect().width || 0;
-    if (w) preview.style.minHeight = Math.round(w * 1.25) + 'px';
-  }
+    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
 
   const pattern = state.usingCustom ? patternLayer(state.custom.pattern) : '';
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
@@ -524,18 +516,44 @@ function renderCard() {
         </footer>
       </div>
     `;
+  } else if (isFit) {
+    // fitCopy templates: badge/art live in their own fixed absolute zones
+    // (matching the canvas's h*0.11/h*0.23 art geometry exactly), and
+    // .card-copy is a fixed 38%-88% zone whose type sizes come from the same
+    // fitCardCopy() the canvas export calls -- converted to cqw so the
+    // relative proportions match the canvas's px sizing on a 1080-wide space.
+    const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+    if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
+    const cq = px => (px / 1080 * 100).toFixed(3) + 'cqw';
+    preview.innerHTML = `
+      ${pattern}
+      ${stickers}
+      ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
+      ${d.badge ? `<div class="fit-badge card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
+      ${state.photo ? photoMarkup('card') : (d.image ? `
+        <div class="fit-art-section" style="border-color:${d.border || '#fbbf24'}">
+          <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
+        </div>
+      ` : '')}
+
+      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="padding-top:${cq(20 * fit.gapScale)}">
+        <h3 style="font-size:${cq(fit.titleSize)};line-height:1.15;margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
+        <p style="font-size:${cq(fit.msgSize)};line-height:1.25">${escapeHtml($('#message').value)}</p>
+        ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
+        ${sender ? `<div class="card-signature" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_SIG_SIZE)}">— ${escapeHtml(sender)}</div>` : ''}
+      </section>
+      ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
+      <div class="card-watermark">MADE WITH WISHCRAFT</div>
+    `;
   } else {
     const copyTop = copyTopPct();
-    const copyPosStyle = isGrow
-      ? `padding-top:${d.image && !state.photo ? '6' : copyTop}%; padding-bottom:${credit ? '16' : '13'}%;`
-      : `top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'};`;
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
       ${state.photo ? photoMarkup('card') : ''}
 
-      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="${copyPosStyle}">
+      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
         ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
 
         ${!state.photo && d.image ? `
@@ -879,10 +897,9 @@ async function install() {
 async function makeImage() {
   const c = $('#exportCanvas'), d = design(),
     isPoster = !state.usingCustom && d.styleType === 'poster',
-    isGrow = !state.usingCustom && !!d.growCopy && !isPoster && !d.heroLayout,
+    isFit = !state.usingCustom && !!d.fitCopy && !isPoster && !d.heroLayout,
     ratio = state.usingCustom ? state.custom.aspect : 'portrait',
-    dims = isGrow ? [1080, Math.round(measureGrowCanvasHeight(d, 1080))]
-      : ratio === 'square' ? [1080, 1080] : ratio === 'landscape' ? [1200, 900] : [1080, 1350];
+    dims = ratio === 'square' ? [1080, 1080] : ratio === 'landscape' ? [1200, 900] : [1080, 1350];
   c.width = dims[0];
   c.height = dims[1];
   const x = c.getContext('2d');
@@ -915,12 +932,9 @@ async function makeImage() {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
-        // growCopy templates use a fixed pixel art size/position (matching the
-        // constants measureGrowCanvasHeight solved c.height against) instead of a
-        // fraction of c.height, so the artwork can never balloon or shrink with it.
-        const artH = isGrow ? GROW_ART_H : c.height * (d.compactArt ? 0.08 : 0.23);
+        const artH = c.height * (d.compactArt ? 0.08 : 0.23);
         const px = (c.width - artW) / 2;
-        const py = isGrow ? GROW_ART_Y : c.height * 0.11;
+        const py = c.height * 0.11;
         x.save();
         roundedPath(x, px, py, artW, artH, 24);
         x.clip();
@@ -933,7 +947,7 @@ async function makeImage() {
       }
     }
     paintDecor(x, d, c.width, c.height);
-    paintCopy(x, d, c.width, c.height);
+    if (isFit) paintFitCopy(x, d, c.width, c.height); else paintCopy(x, d, c.width, c.height);
     const credit = footerCredit();
     if (credit) {
       x.font = '700 20px Arial';
@@ -1085,32 +1099,122 @@ async function paintPosterCanvas(x, d, w, h) {
   x.fillText('MADE WITH WISHCRAFT', w / 2, h * 0.96);
 }
 
-// Fixed pixel art geometry for growCopy templates (1080-wide canvas), independent
-// of c.height -- see measureGrowCanvasHeight, which solves the required canvas
-// height so that paintCopy's own unshrunk top offset (h*0.38, since hasArt is
-// always true here) lands below GROW_ART_Y + GROW_ART_H + GROW_ART_GAP.
-const GROW_ART_Y = 120, GROW_ART_H = 310, GROW_ART_GAP = 40;
+// ---- fitCopy templates: shrink-to-fit typography inside a FIXED 1080x1350
+// canvas / 4:5 card, instead of growing the card or squeezing the artwork.
+// Badge and artwork sit in their own fixed-size/position zones (see
+// .fit-badge/.fit-art-section in fixes.css and the matching h*0.11/h*0.23
+// canvas geometry below); .card-copy occupies a third fixed zone, h*0.38 to
+// h*0.88, exactly like the pre-existing (non-fitCopy) card layout already
+// reserves for text. fitCardCopy() is the ONE function both the DOM preview
+// (via cqw, since .card-preview is a cqw container) and paintFitCopy() (via
+// px on the 1080-wide canvas) call for that zone's sizing -- same word-wrap,
+// same shrink order (gaps before font), same enforced minimums, so both
+// surfaces measure and decide identically, just expressed in different units.
+const FIT_TITLE_MAX = 84, FIT_TITLE_MIN = 34;
+const FIT_MSG_MAX = 46, FIT_MSG_MIN = 24;
+const FIT_TAGLINE_SIZE = 26, FIT_SIG_SIZE = 36;
+const FIT_GAP_MIN = 0.45;
+// Canvas measureText() and real browser CSS text layout don't wrap at exactly
+// the same point for the same nominal font -- small font-metric/kerning
+// differences can push the DOM to one more line than the offscreen canvas
+// measurement predicted. Measuring against a narrower width than the real
+// 84%-wide box, and budgeting less than the real 50%-tall zone, is a one-sided
+// safety margin: it only ever makes the canvas measurement UNDER-estimate how
+// much fits, so the real (wider, taller) DOM box always has at least as much
+// room as what was measured -- never less, so it can never actually overflow.
+const FIT_BUDGET_H = (1350 * 0.88 - 1350 * 0.38) * 0.88; // 594, was 675
+const FIT_MAX_WIDTH = 1080 * 0.78; // narrower than .card-copy's real 84% width
 
-// Pre-measures how tall a growCopy template's canvas needs to be so that
-// paintCopy() renders the title/message/sender at full (un-shrunk) size with
-// zero overflow, and the artwork keeps its normal, un-shrunk height. Mirrors
-// paintCopy's own iteration-0 (no shrink) size/wrap formula exactly, so once
-// the canvas is sized from this, paintCopy's internal shrink loop succeeds
-// immediately and never actually shrinks anything.
-function measureGrowCanvasHeight(d, w) {
-  const scale = w / 360, family = FONT_MAP[d.font] || 'sans-serif', l = state.layout;
+function fitCardCopy(d, title, message, opts) {
+  const { hasSender = false, tagline = '' } = opts || {};
+  const family = FONT_MAP[d.font] || 'sans-serif';
   const ctx = getFitContext();
-  const titleSize = l.titleSize * scale * 0.92, bodySize = l.bodySize * scale * 0.92, sigSize = Math.max(16, l.bodySize * .9) * scale;
-  const max = w * .8 * 0.9;
-  ctx.font = `800 ${titleSize}px ${family}`;
-  const titleLines = measureLines(ctx, cardTitle(), max);
-  ctx.font = `600 ${bodySize}px ${family}`;
-  const bodyLines = measureLines(ctx, $('#message').value, max);
-  const sender = data().sender;
-  const total = titleLines.length * titleSize * 1.15 + bodyLines.length * bodySize * (l.lineHeight / 100) + (sender ? sigSize * 1.2 + 30 * scale : 0) + 20 * scale;
-  const requiredForArt = (GROW_ART_Y + GROW_ART_H + GROW_ART_GAP) / 0.38;
-  const requiredForContent = (total / 0.50) * 1.04;
-  return Math.max(1350, requiredForArt, requiredForContent);
+
+  function measure(titleSize, msgSize, gapScale) {
+    ctx.font = `800 ${titleSize}px ${family}`;
+    const titleLines = measureLines(ctx, title, FIT_MAX_WIDTH);
+    ctx.font = `600 ${msgSize}px ${family}`;
+    const msgLines = measureLines(ctx, message, FIT_MAX_WIDTH);
+    let tagLines = [];
+    if (tagline) {
+      ctx.font = `700 ${FIT_TAGLINE_SIZE}px ${family}`;
+      tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
+    }
+    const topPad = 20 * gapScale;
+    const titleH = titleLines.length * titleSize * 1.15;
+    const titleGap = 14 * gapScale;
+    const msgH = msgLines.length * msgSize * 1.25;
+    const tagGap = tagline ? 20 * gapScale : 0;
+    const tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3;
+    const sigGap = hasSender ? 20 * gapScale : 0;
+    const sigH = hasSender ? FIT_SIG_SIZE * 1.2 : 0;
+    const total = topPad + titleH + titleGap + msgH + tagGap + tagH + sigGap + sigH;
+    return { total, titleLines, msgLines, tagLines };
+  }
+
+  // Phase 1: full (preferred) font size, shrink inter-element gaps first.
+  for (let g = 1; g >= FIT_GAP_MIN; g -= 0.05) {
+    const r = measure(FIT_TITLE_MAX, FIT_MSG_MAX, g);
+    if (r.total <= FIT_BUDGET_H) return { titleSize: FIT_TITLE_MAX, msgSize: FIT_MSG_MAX, gapScale: g, fits: true, ...r };
+  }
+  // Phase 2: gaps at floor, shrink title+message together down to enforced minimums.
+  for (let s = 1; s >= 0; s -= 0.02) {
+    const ts = FIT_TITLE_MIN + (FIT_TITLE_MAX - FIT_TITLE_MIN) * s;
+    const ms = FIT_MSG_MIN + (FIT_MSG_MAX - FIT_MSG_MIN) * s;
+    const r = measure(ts, ms, FIT_GAP_MIN);
+    if (r.total <= FIT_BUDGET_H) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, ...r };
+  }
+  // Truly infeasible even at floor sizes (only possible with pathological
+  // user-typed text, not any generated message) -- caller must warn rather
+  // than clip/truncate; render at floor sizes with overflow left visible.
+  return { titleSize: FIT_TITLE_MIN, msgSize: FIT_MSG_MIN, gapScale: FIT_GAP_MIN, fits: false, ...measure(FIT_TITLE_MIN, FIT_MSG_MIN, FIT_GAP_MIN) };
+}
+
+function paintFitCopy(x, d, w, h) {
+  const sender = data().sender, family = FONT_MAP[d.font] || 'sans-serif';
+  const top = h * 0.38;
+  const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+  if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
+
+  x.textAlign = 'center';
+  x.textBaseline = 'top';
+  let y = top + 20 * fit.gapScale;
+
+  if (d.panel) {
+    x.save();
+    const isDark = d.background && (d.background.includes('#0') || d.background.includes('#1') || d.background.includes('#2') || d.background.includes('#3') || d.background.includes('#4') || d.background.includes('#7f') || d.background.includes('#78') || d.background.includes('#45') || d.background.includes('#4a'));
+    x.fillStyle = isDark ? 'rgba(15, 6, 6, 0.75)' : 'rgba(255, 253, 250, 0.92)';
+    x.strokeStyle = d.border || (isDark ? '#fbbf24' : '#e2e8f0');
+    x.lineWidth = 3;
+    roundedPath(x, w * .07, top - 12, w * .86, fit.total + 24, 24);
+    x.fill();
+    x.stroke();
+    x.restore();
+    x.fillStyle = isDark ? '#fffdfa' : '#1e112a';
+  } else {
+    x.fillStyle = d.textColor || '#ffffff';
+  }
+
+  x.font = `800 ${fit.titleSize}px ${family}`;
+  y = drawLines(x, fit.titleLines, w / 2, y, fit.titleSize * 1.15);
+  y += 14 * fit.gapScale;
+
+  x.font = `600 ${fit.msgSize}px ${family}`;
+  y = drawLines(x, fit.msgLines, w / 2, y, fit.msgSize * 1.25);
+
+  if (d.tagline && fit.tagLines.length) {
+    y += 20 * fit.gapScale;
+    x.font = `italic 700 ${FIT_TAGLINE_SIZE}px ${family}`;
+    x.fillStyle = d.textColor || '#ffffff';
+    y = drawLines(x, fit.tagLines, w / 2, y, FIT_TAGLINE_SIZE * 1.3);
+  }
+
+  if (sender) {
+    y += 20 * fit.gapScale;
+    x.font = `700 ${FIT_SIG_SIZE}px ${family}`;
+    x.fillStyle = d.accentColor || '#f59e0b';
+    x.fillText(`— ${sender}`, w / 2, y);
+  }
 }
 
 function paintCopy(x, d, w, h) {
