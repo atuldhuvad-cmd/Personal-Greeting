@@ -150,9 +150,12 @@ function bind() {
   const filterSelect = $('#templateCategoryFilter');
   if (filterSelect) {
     filterSelect.onchange = e => {
-      state.festivalFilter = e.target.value;
-      renderFestivalFilter();
+      if (!syncFestivalField(e.target.value)) {
+        state.festivalFilter = e.target.value;
+        renderFestivalFilter();
+      }
       renderTemplates();
+      saveWorking();
     };
   }
 
@@ -194,27 +197,74 @@ function goBack() {
   scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ==================== FESTIVAL STATE SYNCHRONIZATION ====================
+// One shared entry point for every control that names a specific festival
+// (occasion dropdown, festival <select> field, filter dropdown, quick chips).
+// Keeps state.fields.festival, state.occasion, state.festivalFilter and the
+// selected template all agreeing on the same festival, and only wipes the
+// message (regenerates) when the festival actually changed -- so switching
+// between design variants of the SAME festival never discards a message the
+// user already generated or hand-edited.
+function syncFestivalField(name, { keepTemplate = false } = {}) {
+  if (!name || name === 'all' || name === 'General') return false;
+  const changed = state.occasion !== 'festival' || state.fields.festival !== name;
+  state.occasion = 'festival';
+  if (!state.fields) state.fields = {};
+  state.fields.festival = name;
+  state.festivalFilter = name;
+  if (!keepTemplate) selectFestivalTemplate(name);
+  renderOccasions();
+  renderFields();
+  renderFestivalFilter();
+  if (changed) {
+    // Only regenerate -- and so only overwrite a hand-edited message -- when
+    // the festival actually changed. Re-selecting the same festival (e.g. a
+    // different design variant) leaves whatever message is already there.
+    state.messageIndex = 0;
+    generate();
+  }
+  return changed;
+}
+
+// Called when the user picks a template CARD directly (Templates screen).
+// The template already tells us its festival -- don't call selectFestivalTemplate
+// (that would override the exact card the user just chose with a default pick).
+function syncFestivalFromTemplate(t) {
+  if (!t.festivals?.length) return false;
+  // A template can be shared across more than one festival (e.g. the
+  // Independence Day poster is also used for Republic Day). The filter is
+  // what the user is actively browsing right now, so it's the most reliable
+  // signal for which of the template's festivals they mean -- prefer it over
+  // state.fields.festival, which can be a stale value left over from before
+  // they changed the filter. Fall back to the already-selected field, then
+  // the template's own primary festival.
+  const name = (t.festivals.includes(state.festivalFilter) && state.festivalFilter)
+    || (t.festivals.includes(state.fields.festival) && state.fields.festival)
+    || t.festival || t.festivals[0];
+  return syncFestivalField(name, { keepTemplate: true });
+}
+
 function renderOccasions() {
   const selected = OCCASIONS.find(o => o.id === state.occasion) || OCCASIONS[0];
   $('#occasionGrid').innerHTML = `<label class="occasion-select">Choose an occasion<select id="occasionSelect">${OCCASIONS.map(o => `<option value="${o.id}" ${o.id === state.occasion ? 'selected' : ''}>${o.icon} ${o.name}</option>`).join('')}</select><small>${selected.hint}</small></label>`;
   $('#occasionSelect').onchange = e => {
-    state.occasion = e.target.value;
-    state.messageIndex = 0;
-    state.fields = {};
-    if (state.occasion === 'festival') {
-      state.fields.festival = 'Diwali';
-      state.festivalFilter = 'Diwali';
-      selectFestivalTemplate('Diwali');
+    const nextOccasion = e.target.value;
+    if (nextOccasion === 'festival') {
+      state.fields = {};
+      syncFestivalField('Diwali');
     } else {
+      state.occasion = nextOccasion;
+      state.messageIndex = 0;
+      state.fields = {};
       state.festivalFilter = 'General';
       if (!PRESET_TEMPLATES.some(t => t.id === state.template && !t.festivals)) {
         state.template = 'festive';
       }
+      renderOccasions();
+      renderFields();
+      generate();
+      renderFestivalFilter();
     }
-    renderOccasions();
-    renderFields();
-    generate();
-    renderFestivalFilter();
     renderTemplates();
     saveWorking();
   };
@@ -232,22 +282,17 @@ function renderFields() {
       else state.fields[el.dataset.field] = el.value;
     }
     el.oninput = () => {
-      state.fields[el.dataset.field] = el.value;
-      state.messageIndex = 0;
       if (el.dataset.field === 'festival') {
-        state.festivalFilter = el.value;
-        selectFestivalTemplate(el.value);
-        renderFestivalFilter();
+        syncFestivalField(el.value);
+      } else {
+        state.fields[el.dataset.field] = el.value;
+        state.messageIndex = 0;
+        generate();
       }
-      generate();
       renderTemplates();
       saveWorking();
     };
   });
-
-  if (state.occasion === 'festival' && state.fields.festival) {
-    selectFestivalTemplate(state.fields.festival);
-  }
 }
 
 function renderTones() {
@@ -298,10 +343,13 @@ function renderFestivalFilter() {
 
     $$('#templateQuickChips button').forEach(btn => {
       btn.onclick = () => {
-        state.festivalFilter = btn.dataset.filter;
-        if (select) select.value = state.festivalFilter;
-        renderFestivalFilter();
+        if (!syncFestivalField(btn.dataset.filter)) {
+          state.festivalFilter = btn.dataset.filter;
+          if (select) select.value = state.festivalFilter;
+          renderFestivalFilter();
+        }
         renderTemplates();
+        saveWorking();
       };
     });
   }
@@ -329,7 +377,6 @@ function renderTemplates() {
   grid.innerHTML = templates.map(t => {
     const isPoster = t.styleType === 'poster';
     const isActive = !state.usingCustom && state.template === t.id;
-    const miniPillars = isPoster && t.pillars ? `<div class="thumb-pillars">${t.pillars.map(p => `<span>${p.icon}</span>`).join('')}</div>` : '';
     const badgeText = t.badge || (isPoster ? 'POSTER' : 'THEME');
 
     return `
@@ -337,10 +384,9 @@ function renderTemplates() {
         <div class="template-thumb" style="background:${t.background}; color:${t.textColor};">
           <div class="thumb-badge" style="background:${t.accentColor || '#f59e0b'};">${badgeText}</div>
           <div class="thumb-center">
-            ${t.image ? `<img src="${t.image}" alt="" class="thumb-art-img">` : `<span class="thumb-icon">${templateDecor(t)[0]}</span>`}
+            ${t.image ? `<img src="${t.image}" alt="" class="thumb-art-img" style="object-position:50% ${t.imageFocusY ?? 50}%">` : `<span class="thumb-icon">${templateDecor(t)[0]}</span>`}
             <span class="thumb-title">${escapeHtml(t.name.replace(/^(Diwali|Holi|Navratri|Uttarayan|Raksha Bandhan|Janmashtami|Ganesh Chaturthi|Dussehra|Bestu Varas|Independence Day|Valentine's Day|Christmas|Eid|New Year)\s*/i, ''))}</span>
           </div>
-          ${miniPillars}
         </div>
         <div class="template-card-info">
           <strong>${escapeHtml(t.name)}</strong>
@@ -351,8 +397,10 @@ function renderTemplates() {
   }).join('');
 
   $$('.template-card').forEach(b => b.onclick = () => {
+    const t = PRESET_TEMPLATES.find(x => x.id === b.dataset.id);
     state.template = b.dataset.id;
     state.usingCustom = false;
+    if (t) syncFestivalFromTemplate(t);
     renderTemplates();
     saveWorking();
   });
@@ -384,18 +432,13 @@ function renderCard() {
     (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
   if (isPoster) {
-    const festivalName = (festivalHeadline(d.festival) || cardTitleText()).toUpperCase();
+    // Use the synced, user-selected festival (cardTitleText() reads state.fields.festival)
+  // rather than the template's own fixed `festival` field, so a template shared across
+  // more than one festival (e.g. the Independence Day poster also used for Republic Day)
+  // shows the festival the user actually selected, not whichever the template defaults to.
+  const festivalName = cardTitleText().toUpperCase();
     const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
     const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
-    const pillarsHtml = (d.pillars || []).map(p => `
-      <div class="infographic-pillar" style="border-color:${d.accentColor || '#f59e0b'}40">
-        <span class="pillar-emoji">${p.icon}</span>
-        <div class="pillar-text">
-          <strong style="color:${d.accentColor || '#f59e0b'}">${escapeHtml(p.title)}</strong>
-          <span>${escapeHtml(p.desc)}</span>
-        </div>
-      </div>
-    `).join('');
 
     const posterPhotoClear = state.photo ? Math.max(12, Math.min(72, state.photoCfg.frameY + state.photoCfg.frameSize + 5)) : 0;
     preview.innerHTML = `
@@ -412,7 +455,7 @@ function renderCard() {
 
           ${!state.photo && d.image ? `
             <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
-              <img src="${d.image}" alt="${escapeHtml(festivalName)}" class="poster-art-img">
+              <img src="${d.image}" alt="${escapeHtml(festivalName)}" class="poster-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
             </div>
           ` : ''}
 
@@ -420,10 +463,6 @@ function renderCard() {
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
             <p class="poster-message" style="font-size:${l.bodySize}px; line-height:${l.lineHeight / 100}; color:${d.textColor}">${escapeHtml($('#message').value)}</p>
             ${sender ? `<div class="poster-sender" style="color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
-          </div>
-
-          <div class="poster-pillars-grid">
-            ${pillarsHtml}
           </div>
 
           <div class="poster-tagline" style="color:${d.textColor}">
@@ -450,7 +489,7 @@ function renderCard() {
 
         ${!state.photo && d.image ? `
           <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
-            <img src="${d.image}" alt="" class="card-art-img">
+            <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
           </div>
         ` : ''}
 
@@ -826,7 +865,7 @@ async function makeImage() {
         x.save();
         roundedPath(x, px, py, artW, artH, 24);
         x.clip();
-        drawCoverImage(x, img, px, py, artW, artH);
+        drawCoverImage(x, img, px, py, artW, artH, (d.imageFocusY ?? 50) / 100);
         x.restore();
         x.strokeStyle = d.border || '#fbbf24';
         x.lineWidth = 6;
@@ -871,7 +910,11 @@ async function makeImage() {
 }
 
 async function paintPosterCanvas(x, d, w, h) {
-  const festivalName = (festivalHeadline(d.festival) || cardTitleText()).toUpperCase();
+  // Use the synced, user-selected festival (cardTitleText() reads state.fields.festival)
+  // rather than the template's own fixed `festival` field, so a template shared across
+  // more than one festival (e.g. the Independence Day poster also used for Republic Day)
+  // shows the festival the user actually selected, not whichever the template defaults to.
+  const festivalName = cardTitleText().toUpperCase();
   const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
   const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
   const l = state.layout, date = cardDateText(), sender = data().sender, credit = footerCredit();
@@ -926,7 +969,7 @@ async function paintPosterCanvas(x, d, w, h) {
       x.save();
       roundedPath(x, px, currentY, artW, artH, 20);
       x.clip();
-      drawCoverImage(x, img, px, currentY, artW, artH);
+      drawCoverImage(x, img, px, currentY, artW, artH, (d.imageFocusY ?? 50) / 100);
       x.restore();
       x.strokeStyle = (d.accentColor || '#ea580c') + '55';
       x.lineWidth = 4;
@@ -964,44 +1007,14 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 35;
   }
 
-  // 4 Infographic Pillars
-  const pillars = d.pillars || [];
-  if (pillars.length >= 4) {
-    const pillarTop = h * 0.72;
-    const pillarHeight = h * 0.12;
-    const pillarWidth = (w * 0.9) / 4 - 15;
-    const startX = w * 0.05;
-
-    pillars.slice(0, 4).forEach((p, i) => {
-      const px = startX + i * (pillarWidth + 20);
-      x.save();
-      x.fillStyle = '#f8fafc';
-      x.strokeStyle = (d.accentColor || '#f59e0b') + '55';
-      x.lineWidth = 3;
-      roundedPath(x, px, pillarTop, pillarWidth, pillarHeight, 20);
-      x.fill();
-      x.stroke();
-
-      x.textAlign = 'center';
-      x.font = '36px Arial';
-      x.fillText(p.icon, px + pillarWidth / 2, pillarTop + 42);
-
-      x.font = '800 20px Arial';
-      x.fillStyle = d.accentColor || '#d97706';
-      x.fillText(p.title, px + pillarWidth / 2, pillarTop + 80);
-
-      x.font = '600 16px Arial';
-      x.fillStyle = '#475569';
-      x.fillText(p.desc, px + pillarWidth / 2, pillarTop + 106);
-      x.restore();
-    });
-  }
-
-  // Tagline Banner
+  // Tagline banner -- positioned relative to the flowing content (not a fixed
+  // h*0.88 offset) so there's no leftover blank gap now that the four
+  // health/safety pillar boxes have been removed.
+  const taglineY = Math.min(Math.max(currentY + 40, h * 0.74), h * 0.86);
   x.font = 'italic 700 22px Arial, sans-serif';
   x.fillStyle = d.textColor || '#1e293b';
   x.textAlign = 'center';
-  x.fillText(tagline, w / 2, h * 0.88);
+  x.fillText(tagline, w / 2, taglineY);
 
   // Footer & credits
   x.fillStyle = '#64748b';
@@ -1231,11 +1244,12 @@ function stickerStyle(s, i) {
 }
 
 function selectFestivalTemplate(name) {
+  // Falls back to a general template when a festival has no dedicated design yet
+  // (e.g. Thanksgiving currently has none), so state.template never dangles on
+  // whatever unrelated design happened to be selected before.
   const match = PRESET_TEMPLATES.find(t => t.festivals?.includes(name) && t.styleType === 'poster') || PRESET_TEMPLATES.find(t => t.festivals?.includes(name));
-  if (match) {
-    state.template = match.id;
-    state.usingCustom = false;
-  }
+  state.template = match ? match.id : 'festive';
+  state.usingCustom = false;
 }
 
 // Card-headline-only display names. The Festival selector/category/filter labels
@@ -1276,11 +1290,6 @@ function copyTopPct() {
 
 function focusPct(value) {
   return Math.max(0, Math.min(100, (Number(value) + 100) / 2));
-}
-
-function drawCoverImage(x, img, dx, dy, w, h) {
-  const scale = Math.max(w / img.width, h / img.height), sw = w / scale, sh = h / scale, sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-  x.drawImage(img, sx, sy, sw, sh, dx, dy, w, h);
 }
 
 function footerCredit() {
@@ -1372,13 +1381,13 @@ function loadImg(src) {
   });
 }
 
-function drawCoverImage(x, img, dx, dy, dw, dh) {
+function drawCoverImage(x, img, dx, dy, dw, dh, focusY = 0.5, focusX = 0.5) {
   if (!img || !img.width || !img.height) return;
   const scale = Math.max(dw / img.width, dh / img.height);
   const sw = dw / scale;
   const sh = dh / scale;
-  const sx = (img.width - sw) / 2;
-  const sy = (img.height - sh) / 2;
+  const sx = (img.width - sw) * focusX;
+  const sy = (img.height - sh) * focusY;
   try {
     x.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   } catch (e) {

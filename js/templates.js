@@ -216,6 +216,7 @@ const PRESET_TEMPLATES = [
     subtitle: 'Dance • Devotion • Good Health',
     tagline: 'Enjoy every step. Stay active. Stay healthy.',
     image: 'assets/festival/navratri.jpg',
+    imageFocusY: 20,
     pillars: [
       { icon: '🏃', title: 'WARM UP', desc: 'Before Dance' },
       { icon: '💧', title: 'STAY', desc: 'Hydrated' },
@@ -246,6 +247,7 @@ const PRESET_TEMPLATES = [
     subtitle: 'Nine Nights of Divine Radiance',
     tagline: 'Whirling beats, joyful smiles, and Maa Durga divine blessings.',
     image: 'assets/festival/navratri.jpg',
+    imageFocusY: 20,
     background: 'linear-gradient(145deg, #2e1065 0%, #581c87 50%, #9333ea 100%)',
     colors: ['#2e1065', '#9333ea'],
     textColor: '#fffdfa',
@@ -270,6 +272,7 @@ const PRESET_TEMPLATES = [
     subtitle: 'Fly High, Stay Safe',
     tagline: 'Enjoy the sky. Protect your health.',
     image: 'assets/festival/uttarayan.jpg',
+    imageFocusY: 35,
     pillars: [
       { icon: '🧢', title: 'PROTECT', desc: 'From Sun & UV' },
       { icon: '💧', title: 'STAY', desc: 'Hydrated' },
@@ -300,6 +303,7 @@ const PRESET_TEMPLATES = [
     subtitle: 'Soaring Hopes, Unlimited Joy',
     tagline: 'Loud cheers, colorful flying kites, and chikki sweetness.',
     image: 'assets/festival/uttarayan.jpg',
+    imageFocusY: 35,
     background: 'linear-gradient(160deg, #0369a1 0%, #0284c7 50%, #38bdf8 100%)',
     colors: ['#0369a1', '#38bdf8'],
     textColor: '#f0f9ff',
