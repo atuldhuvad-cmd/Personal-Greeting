@@ -118,7 +118,8 @@ function normalizeState() {
     state.fields.festival = 'Diwali';
   }
   state.festivalFilter = state.occasion === 'festival' ? (state.fields.festival || 'Diwali') : 'General';
-  if (!PRESET_TEMPLATES.some(t => t.id === state.template)) {
+  const currentTemplate = PRESET_TEMPLATES.find(t => t.id === state.template);
+  if (!currentTemplate || !templateEligibleForOccasion(currentTemplate, state.occasion)) {
     state.template = state.occasion === 'festival' ? 'diwali-poster' : 'festive';
   }
 }
@@ -257,7 +258,8 @@ function renderOccasions() {
       state.messageIndex = 0;
       state.fields = {};
       state.festivalFilter = 'General';
-      if (!PRESET_TEMPLATES.some(t => t.id === state.template && !t.festivals)) {
+      const current = PRESET_TEMPLATES.find(t => t.id === state.template);
+      if (!current || current.festivals || !templateEligibleForOccasion(current, nextOccasion)) {
         state.template = 'festive';
       }
       renderOccasions();
@@ -355,15 +357,20 @@ function renderFestivalFilter() {
   }
 }
 
+// A template with an explicit `occasions` allowlist (e.g. the Birthday hero
+// templates) is only eligible when the current occasion is in that list.
+// Templates without the field are occasion-agnostic, same as before this
+// field existed, so no other template's availability changes.
+function templateEligibleForOccasion(t, occasion) {
+  return !t.occasions || t.occasions.includes(occasion);
+}
+
 function templatesForCurrentFilter() {
   const f = state.festivalFilter;
-  if (!f || f === 'all') {
-    return PRESET_TEMPLATES;
-  }
-  if (f === 'General') {
-    return PRESET_TEMPLATES.filter(t => !t.festivals);
-  }
-  return PRESET_TEMPLATES.filter(t => t.festivals?.includes(f));
+  const byFilter = !f || f === 'all' ? PRESET_TEMPLATES
+    : f === 'General' ? PRESET_TEMPLATES.filter(t => !t.festivals)
+    : PRESET_TEMPLATES.filter(t => t.festivals?.includes(f));
+  return byFilter.filter(t => templateEligibleForOccasion(t, state.occasion));
 }
 
 function renderTemplates() {
@@ -419,7 +426,14 @@ function design() {
             `linear-gradient(135deg,${c.color1},${c.color2})`;
     return { background: bg, textColor: c.textColor, font: c.font, stickers: c.stickers.map(s => s.emoji), shape: 'soft', border: c.color2 };
   }
-  return PRESET_TEMPLATES.find(t => t.id === state.template) || PRESET_TEMPLATES[0];
+  const t = PRESET_TEMPLATES.find(t => t.id === state.template) || PRESET_TEMPLATES[0];
+  // Defensive: never render a template outside its declared occasions (e.g. a Birthday
+  // hero template) even if state.template and state.occasion somehow disagree — a stale
+  // save, direct state mutation, or a future code path that forgets to reset one of them.
+  if (!templateEligibleForOccasion(t, state.occasion)) {
+    return PRESET_TEMPLATES.find(x => x.id === 'festive') || PRESET_TEMPLATES[0];
+  }
+  return t;
 }
 
 function renderCard() {
@@ -440,27 +454,16 @@ function renderCard() {
 
   if (isHero) {
     const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
-    const family = FONT_MAP[d.font] || 'Georgia, serif';
-    const fit = fitGreetingHeading(data().recipient, {
-      maxWidth: area.width / 100 * 1080, maxHeight: area.height / 100 * 1350,
-      startSize: 96, minSize: 40, floorSize: 18,
-      fontFamily: family, fontWeight: 800, lineHeightRatio: 1.12
-    });
+    const fit = fitHeroTitle(d, data().recipient);
     const titleLinesHtml = fit.lines.map(line =>
       `<div class="hero-title-line" style="font-size:${(line.fontSize / 1080 * 100).toFixed(3)}cqw;line-height:${fit.lineHeight / line.fontSize}">${escapeHtml(line.text)}</div>`
     ).join('');
-    const msgFit = fitTextBlock($('#message').value, {
-      maxWidth: 1080 * 0.82, maxHeight: 1350 * (sender ? 0.16 : 0.19),
-      startSize: 35, minSize: 20, fontFamily: FONT_MAP[d.font] || 'sans-serif', fontWeight: 600, lineHeightRatio: 1.32
-    });
-    const msgHtml = msgFit.lines.map(t => escapeHtml(t)).join('<br>');
     preview.innerHTML = `
       ${date ? `<div class="hero-date" style="color:${d.textColor}">${escapeHtml(date)}</div>` : ''}
       <div class="hero-title-box" style="top:${area.top}%;left:${area.left}%;width:${area.width}%;height:${area.height}%;color:${d.textColor}">${titleLinesHtml}</div>
       ${state.photo ? photoMarkup('card') : ''}
       <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${d.scrimColor || '0,0,0'},.88), rgba(${d.scrimColor || '0,0,0'},0) 55%)">
         <div class="hero-footer-inner">
-          ${msgHtml ? `<p class="hero-message" style="color:${d.textColor}">${msgHtml}</p>` : ''}
           ${sender ? `<div class="hero-sender" style="color:${d.accentColor || d.textColor}">— ${escapeHtml(sender)}</div>` : ''}
         </div>
       </div>
@@ -1256,36 +1259,24 @@ function fitGreetingHeading(name, opts) {
   };
 }
 
-// Shrink-to-fit word-wrapped paragraph, used for the hero footer message.
-function fitTextBlock(text, opts) {
-  const {
-    maxWidth, maxHeight, startSize = 30, minSize = 16,
-    fontFamily = 'sans-serif', fontWeight = 600, lineHeightRatio = 1.3
-  } = opts;
-  const raw = String(text || '').trim();
-  if (!raw) return { lines: [], fontSize: startSize, lineHeight: startSize * lineHeightRatio };
-
-  const wrapAt = size => {
-    const out = [];
-    raw.split('\n').forEach(p => {
-      if (!p.trim()) { out.push(''); return; }
-      let cur = '';
-      p.split(/\s+/).forEach(word => {
-        const test = cur ? cur + ' ' + word : word;
-        if (cur && measureTextWidth(test, fontWeight, size, fontFamily) > maxWidth) { out.push(cur); cur = word; }
-        else cur = test;
-      });
-      if (cur) out.push(cur);
-    });
-    return out;
-  };
-
-  let size = startSize, lines = wrapAt(size);
-  while (size > minSize && lines.length * size * lineHeightRatio > maxHeight) {
-    size -= 1;
-    lines = wrapAt(size);
-  }
-  return { lines, fontSize: size, lineHeight: size * lineHeightRatio };
+// The ONE set of fit parameters for hero-template greeting headings. Both
+// renderCard() (DOM preview) and paintHeroCard() (PNG export) call this same
+// function with the same template's d.titleArea, so the safe area, starting
+// size, minimum size, wrapping decisions, line count and line height are
+// identical by construction, not by separately-maintained matching constants.
+const HERO_TITLE_FIT = { startSize: 96, minSize: 40, floorSize: 18, fontWeight: 800, lineHeightRatio: 1.12 };
+function fitHeroTitle(d, name) {
+  const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+  return fitGreetingHeading(name, {
+    maxWidth: area.width / 100 * 1080,
+    maxHeight: area.height / 100 * 1350,
+    startSize: HERO_TITLE_FIT.startSize,
+    minSize: HERO_TITLE_FIT.minSize,
+    floorSize: HERO_TITLE_FIT.floorSize,
+    fontFamily: FONT_MAP[d.font] || 'Georgia, serif',
+    fontWeight: HERO_TITLE_FIT.fontWeight,
+    lineHeightRatio: HERO_TITLE_FIT.lineHeightRatio
+  });
 }
 
 async function paintHeroCard(x, d, w, h) {
@@ -1308,12 +1299,7 @@ async function paintHeroCard(x, d, w, h) {
 
   const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
   const boxX = w * area.left / 100, boxY = h * area.top / 100, boxW = w * area.width / 100, boxH = h * area.height / 100;
-  const name = data().recipient;
-  const fit = fitGreetingHeading(name, {
-    maxWidth: boxW, maxHeight: boxH,
-    startSize: Math.round(h * 0.088), minSize: Math.round(h * 0.036), floorSize: Math.round(h * 0.017),
-    fontFamily: family, fontWeight: 800, lineHeightRatio: 1.12
-  });
+  const fit = fitHeroTitle(d, data().recipient);
   x.textAlign = 'center';
   x.textBaseline = 'top';
   x.fillStyle = d.textColor || '#ffffff';
@@ -1324,7 +1310,7 @@ async function paintHeroCard(x, d, w, h) {
     ty += fit.lineHeight;
   });
 
-  const scrimTop = h * 0.66;
+  const scrimTop = h * 0.78;
   const grad = x.createLinearGradient(0, h, 0, scrimTop);
   grad.addColorStop(0, `rgba(${d.scrimColor || '0,0,0'},0.88)`);
   grad.addColorStop(1, `rgba(${d.scrimColor || '0,0,0'},0)`);
@@ -1345,27 +1331,12 @@ async function paintHeroCard(x, d, w, h) {
 
   const sender = data().sender;
   const credit = footerCredit();
-  const msgBottom = h * (sender ? 0.865 : 0.90);
-  const msgFit = fitTextBlock($('#message').value, {
-    maxWidth: w * 0.82, maxHeight: h * (sender ? 0.16 : 0.19),
-    startSize: Math.round(h * 0.026), minSize: Math.round(h * 0.015),
-    fontFamily: FONT_MAP[d.font] || 'sans-serif', fontWeight: 600, lineHeightRatio: 1.32
-  });
   x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
-  x.fillStyle = d.textColor || '#ffffff';
-  let by = msgBottom;
   if (sender) {
-    x.font = `700 ${Math.round(h * 0.023)}px ${FONT_MAP[d.font] || 'sans-serif'}`;
+    x.font = `700 ${Math.round(h * 0.023)}px ${family}`;
     x.fillStyle = d.accentColor || d.textColor || '#ffffff';
-    x.fillText(`— ${sender}`, w / 2, by);
-    by -= h * 0.042;
-  }
-  x.fillStyle = d.textColor || '#ffffff';
-  for (let i = msgFit.lines.length - 1; i >= 0; i--) {
-    x.font = `600 ${msgFit.fontSize}px ${FONT_MAP[d.font] || 'sans-serif'}`;
-    x.fillText(msgFit.lines[i], w / 2, by);
-    by -= msgFit.lineHeight;
+    x.fillText(`— ${sender}`, w / 2, h * 0.90);
   }
 
   if (credit) {
