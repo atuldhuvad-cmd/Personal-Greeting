@@ -116,6 +116,15 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .card-art-img{width:100%;height:100%;object-fit:cover;display:block}
 .card-tagline-text{font-size:12px;font-weight:700;margin-top:8px;opacity:.9;line-height:1.3}
 
+/* growCopy templates (opt-in via template.growCopy): rather than squeezing the
+   artwork toward zero OR clipping text, let the whole card grow taller than its
+   4:5 baseline to fit long titles/messages/sender/footer without overflow, while
+   .card-art-section keeps its normal, un-shrunk, "meaningful minimum" height.
+   .card-preview's min-height is set inline in JS (from its own rendered width)
+   since aspect-ratio itself hard-clamps height and won't grow for content. */
+.card-preview.grow-copy{aspect-ratio:auto}
+.card-preview.grow-copy .card-copy{position:relative;top:auto;left:auto;right:auto;bottom:auto;width:84%;margin:0 auto;overflow:visible}
+
 @media(max-width:520px){
   .poster-art-section{height:110px}
   .card-art-section{height:100px;width:95%}

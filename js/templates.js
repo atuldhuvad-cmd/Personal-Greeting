@@ -32,6 +32,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'rakhi-royal',
+    growCopy: true,
     name: 'Raksha Bandhan Sacred Silk & Gold',
     category: 'Raksha Bandhan · Royal Traditional Art',
     festival: 'Raksha Bandhan',
@@ -54,6 +55,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'rakhi-floral',
+    growCopy: true,
     name: 'Rakhi Sibling Sweetness & Joy',
     category: 'Raksha Bandhan · Joyful Festive Art',
     festival: 'Raksha Bandhan',
@@ -239,6 +241,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'navratri-royal',
+    growCopy: true,
     name: 'Navratri Garba Raas Glow',
     category: 'Navratri · Royal Garba Art',
     festival: 'Navratri',
@@ -295,6 +298,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'uttarayan-azure',
+    growCopy: true,
     name: 'Uttarayan Azure Sky Carnival',
     category: 'Uttarayan · Sky & Kites Art',
     festival: 'Uttarayan / Makar Sankranti',
@@ -350,6 +354,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'janmashtami-divine',
+    growCopy: true,
     name: 'Janmashtami Peacock Radiance',
     category: 'Janmashtami · Peacock Blue & Gold Art',
     festival: 'Janmashtami',
@@ -404,6 +409,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'ganesh-royal',
+    growCopy: true,
     name: 'Ganesh Siddhivinayak Gold',
     category: 'Ganesh Chaturthi · Saffron & Crimson Art',
     festival: 'Ganesh Chaturthi',
@@ -458,6 +464,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'dussehra-royal',
+    growCopy: true,
     name: 'Dussehra Vijayadashami Glory',
     category: 'Dussehra · Warrior Amber Art',
     festival: 'Dussehra',
@@ -512,6 +519,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'bestuvaras-royal',
+    growCopy: true,
     name: 'Nutan Varshabhinandan Gold',
     category: 'Bestu Varas · Auspicious Gold & Saffron Art',
     festival: 'Bestu Varas (Gujarati New Year)',
@@ -598,6 +606,7 @@ const PRESET_TEMPLATES = [
   },
   {
     id: 'valentines-romantic',
+    growCopy: true,
     name: 'Valentine Velvet Rose Romance',
     category: 'Valentine\'s Day · Romantic Luxury Art',
     festival: 'Valentine\'s Day',

@@ -440,13 +440,22 @@ function renderCard() {
   const d = design(), preview = $('#cardPreview'), decor = decorationsForDesign(d), sender = data().sender, l = state.layout, credit = footerCredit(), date = cardDateText();
   const isPoster = !state.usingCustom && d.styleType === 'poster';
   const isHero = !state.usingCustom && !!d.heroLayout;
+  const isGrow = !state.usingCustom && !!d.growCopy && !isPoster && !isHero;
 
-  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''}`;
+  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''} ${isGrow ? 'grow-copy' : ''}`;
   preview.classList.toggle('has-photo', !!state.photo);
   preview.classList.toggle('has-panel', !!d.panel && !isPoster);
   preview.style.cssText = isHero
     ? `background:#12100f center/cover no-repeat url(${d.backgroundImage}); color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'Georgia, serif'}; text-align:center; aspect-ratio:4/5`
-    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
+    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${isGrow ? 'auto' : state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
+  if (isGrow) {
+    // aspect-ratio hard-clamps height even when content needs more room, so give
+    // grow-copy templates an explicit min-height (from their own current rendered
+    // width) instead -- .card-copy is then laid out in normal flow below and the
+    // box grows taller automatically for whatever content it actually contains.
+    const w = preview.getBoundingClientRect().width || 0;
+    if (w) preview.style.minHeight = Math.round(w * 1.25) + 'px';
+  }
 
   const pattern = state.usingCustom ? patternLayer(state.custom.pattern) : '';
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
@@ -517,13 +526,16 @@ function renderCard() {
     `;
   } else {
     const copyTop = copyTopPct();
+    const copyPosStyle = isGrow
+      ? `padding-top:${d.image && !state.photo ? '6' : copyTop}%; padding-bottom:${credit ? '16' : '13'}%;`
+      : `top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'};`;
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
       ${state.photo ? photoMarkup('card') : ''}
 
-      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
+      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="${copyPosStyle}">
         ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
 
         ${!state.photo && d.image ? `
@@ -865,12 +877,15 @@ async function install() {
 }
 
 async function makeImage() {
-  const c = $('#exportCanvas'),
+  const c = $('#exportCanvas'), d = design(),
+    isPoster = !state.usingCustom && d.styleType === 'poster',
+    isGrow = !state.usingCustom && !!d.growCopy && !isPoster && !d.heroLayout,
     ratio = state.usingCustom ? state.custom.aspect : 'portrait',
-    dims = ratio === 'square' ? [1080, 1080] : ratio === 'landscape' ? [1200, 900] : [1080, 1350];
+    dims = isGrow ? [1080, Math.round(measureGrowCanvasHeight(d, 1080))]
+      : ratio === 'square' ? [1080, 1080] : ratio === 'landscape' ? [1200, 900] : [1080, 1350];
   c.width = dims[0];
   c.height = dims[1];
-  const x = c.getContext('2d'), d = design(), isPoster = !state.usingCustom && d.styleType === 'poster';
+  const x = c.getContext('2d');
 
   if (!state.usingCustom && d.heroLayout) {
     await paintHeroCard(x, d, c.width, c.height);
@@ -900,9 +915,12 @@ async function makeImage() {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
-        const artH = c.height * (d.compactArt ? 0.08 : 0.23);
+        // growCopy templates use a fixed pixel art size/position (matching the
+        // constants measureGrowCanvasHeight solved c.height against) instead of a
+        // fraction of c.height, so the artwork can never balloon or shrink with it.
+        const artH = isGrow ? GROW_ART_H : c.height * (d.compactArt ? 0.08 : 0.23);
         const px = (c.width - artW) / 2;
-        const py = c.height * 0.11;
+        const py = isGrow ? GROW_ART_Y : c.height * 0.11;
         x.save();
         roundedPath(x, px, py, artW, artH, 24);
         x.clip();
@@ -1065,6 +1083,34 @@ async function paintPosterCanvas(x, d, w, h) {
   }
   x.font = '700 16px Arial';
   x.fillText('MADE WITH WISHCRAFT', w / 2, h * 0.96);
+}
+
+// Fixed pixel art geometry for growCopy templates (1080-wide canvas), independent
+// of c.height -- see measureGrowCanvasHeight, which solves the required canvas
+// height so that paintCopy's own unshrunk top offset (h*0.38, since hasArt is
+// always true here) lands below GROW_ART_Y + GROW_ART_H + GROW_ART_GAP.
+const GROW_ART_Y = 120, GROW_ART_H = 310, GROW_ART_GAP = 40;
+
+// Pre-measures how tall a growCopy template's canvas needs to be so that
+// paintCopy() renders the title/message/sender at full (un-shrunk) size with
+// zero overflow, and the artwork keeps its normal, un-shrunk height. Mirrors
+// paintCopy's own iteration-0 (no shrink) size/wrap formula exactly, so once
+// the canvas is sized from this, paintCopy's internal shrink loop succeeds
+// immediately and never actually shrinks anything.
+function measureGrowCanvasHeight(d, w) {
+  const scale = w / 360, family = FONT_MAP[d.font] || 'sans-serif', l = state.layout;
+  const ctx = getFitContext();
+  const titleSize = l.titleSize * scale * 0.92, bodySize = l.bodySize * scale * 0.92, sigSize = Math.max(16, l.bodySize * .9) * scale;
+  const max = w * .8 * 0.9;
+  ctx.font = `800 ${titleSize}px ${family}`;
+  const titleLines = measureLines(ctx, cardTitle(), max);
+  ctx.font = `600 ${bodySize}px ${family}`;
+  const bodyLines = measureLines(ctx, $('#message').value, max);
+  const sender = data().sender;
+  const total = titleLines.length * titleSize * 1.15 + bodyLines.length * bodySize * (l.lineHeight / 100) + (sender ? sigSize * 1.2 + 30 * scale : 0) + 20 * scale;
+  const requiredForArt = (GROW_ART_Y + GROW_ART_H + GROW_ART_GAP) / 0.38;
+  const requiredForContent = (total / 0.50) * 1.04;
+  return Math.max(1350, requiredForArt, requiredForContent);
 }
 
 function paintCopy(x, d, w, h) {
