@@ -37,7 +37,7 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .card-preview.has-panel .placed-sticker{opacity:.78}
 .card-signature{font-size:clamp(17px,4.4vw,27px);font-weight:800;margin-top:24px}
 .card-date{position:absolute;left:7%;right:7%;top:5%;z-index:5;font:800 12px var(--font);opacity:.72;text-align:center}
-.developer-credit{position:absolute;left:7%;right:7%;bottom:6.4%;z-index:5;font:700 10px var(--font);letter-spacing:.04em;opacity:.72;text-align:center}
+.developer-credit{position:absolute;left:7%;right:7%;bottom:8%;z-index:5;font:700 10px var(--font);letter-spacing:.04em;opacity:.72;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-preview.has-photo{align-items:stretch;padding:0}
 .card-preview.has-photo .card-copy{max-height:none}
 .nav-fab{position:fixed;z-index:70;top:80px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border-radius:999px;padding:10px 14px;font-weight:800}
@@ -92,6 +92,14 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .pillar-text strong{font-size:8.5px;font-weight:900;display:block;letter-spacing:.02em;line-height:1.1}
 .pillar-text span{font-size:7.5px;font-weight:600;color:#475569;display:block;line-height:1.1;margin-top:1px}
 .poster-tagline{text-align:center;font-size:10.5px;font-weight:700;font-style:italic;margin:2px 0;line-height:1.25;opacity:.9}
+/* Poster footer: give it real layout so the credit line and watermark always
+   stack in normal flow with a defined gap, instead of .card-watermark's
+   position:absolute (meant for the non-poster card layout) floating
+   independently near the bottom of the whole card and landing on top of
+   whatever the footer's natural flow position happens to be. */
+.poster-footer{flex-shrink:0;padding:6px 12px 10px;text-align:center;background:inherit}
+.poster-credit{font:700 9px var(--font);color:#64748b;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.poster-footer .card-watermark{position:static;display:block;bottom:auto}
 .poster-art-section{width:100%;height:135px;overflow:hidden;border-radius:12px;margin:3px 0 6px;border:1.5px solid rgba(0,0,0,.08);background:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .poster-art-img{width:100%;height:100%;object-fit:cover;display:block}
 
