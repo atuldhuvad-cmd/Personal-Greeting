@@ -1,11 +1,11 @@
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)], KEYS = { settings: 'wishcraft_settings_v2', cards: 'wishcraft_cards_v2', draft: 'wishcraft_working_v2' };
 const state = {
-  occasion: 'festival',
+  occasion: 'birthday',
   tone: 'joyful',
   messageIndex: 0,
-  fields: { festival: 'Diwali' },
-  template: 'diwali-poster',
-  festivalFilter: 'Diwali',
+  fields: {},
+  template: 'festive',
+  festivalFilter: 'General',
   photo: null,
   photoCfg: { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true },
   layout: { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125 },
@@ -22,11 +22,6 @@ const state = {
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-  const fixes = document.createElement('link');
-  fixes.rel = 'stylesheet';
-  fixes.href = 'css/fixes.css';
-  document.head.append(fixes);
-
   setupCreatePhotoPanel();
   setupDeveloperSettings();
   setupCardDate();
@@ -122,11 +117,10 @@ function normalizeState() {
   if (state.occasion === 'festival' && !state.fields.festival) {
     state.fields.festival = 'Diwali';
   }
-  if (!state.festivalFilter) {
-    state.festivalFilter = state.occasion === 'festival' ? (state.fields.festival || 'Diwali') : 'all';
-  }
-  if (!PRESET_TEMPLATES.some(t => t.id === state.template)) {
-    state.template = 'diwali-poster';
+  state.festivalFilter = state.occasion === 'festival' ? (state.fields.festival || 'Diwali') : 'General';
+  const currentTemplate = PRESET_TEMPLATES.find(t => t.id === state.template);
+  if (!currentTemplate || !templateEligibleForOccasion(currentTemplate, state.occasion)) {
+    state.template = state.occasion === 'festival' ? 'diwali-poster' : 'festive';
   }
 }
 
@@ -157,9 +151,12 @@ function bind() {
   const filterSelect = $('#templateCategoryFilter');
   if (filterSelect) {
     filterSelect.onchange = e => {
-      state.festivalFilter = e.target.value;
-      renderFestivalFilter();
+      if (!syncFestivalField(e.target.value)) {
+        state.festivalFilter = e.target.value;
+        renderFestivalFilter();
+      }
       renderTemplates();
+      saveWorking();
     };
   }
 
@@ -201,27 +198,75 @@ function goBack() {
   scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ==================== FESTIVAL STATE SYNCHRONIZATION ====================
+// One shared entry point for every control that names a specific festival
+// (occasion dropdown, festival <select> field, filter dropdown, quick chips).
+// Keeps state.fields.festival, state.occasion, state.festivalFilter and the
+// selected template all agreeing on the same festival, and only wipes the
+// message (regenerates) when the festival actually changed -- so switching
+// between design variants of the SAME festival never discards a message the
+// user already generated or hand-edited.
+function syncFestivalField(name, { keepTemplate = false } = {}) {
+  if (!name || name === 'all' || name === 'General') return false;
+  const changed = state.occasion !== 'festival' || state.fields.festival !== name;
+  state.occasion = 'festival';
+  if (!state.fields) state.fields = {};
+  state.fields.festival = name;
+  state.festivalFilter = name;
+  if (!keepTemplate) selectFestivalTemplate(name);
+  renderOccasions();
+  renderFields();
+  renderFestivalFilter();
+  if (changed) {
+    // Only regenerate -- and so only overwrite a hand-edited message -- when
+    // the festival actually changed. Re-selecting the same festival (e.g. a
+    // different design variant) leaves whatever message is already there.
+    state.messageIndex = 0;
+    generate();
+  }
+  return changed;
+}
+
+// Called when the user picks a template CARD directly (Templates screen).
+// The template already tells us its festival -- don't call selectFestivalTemplate
+// (that would override the exact card the user just chose with a default pick).
+function syncFestivalFromTemplate(t) {
+  if (!t.festivals?.length) return false;
+  // A template can be shared across more than one festival (e.g. the
+  // Independence Day poster is also used for Republic Day). The filter is
+  // what the user is actively browsing right now, so it's the most reliable
+  // signal for which of the template's festivals they mean -- prefer it over
+  // state.fields.festival, which can be a stale value left over from before
+  // they changed the filter. Fall back to the already-selected field, then
+  // the template's own primary festival.
+  const name = (t.festivals.includes(state.festivalFilter) && state.festivalFilter)
+    || (t.festivals.includes(state.fields.festival) && state.fields.festival)
+    || t.festival || t.festivals[0];
+  return syncFestivalField(name, { keepTemplate: true });
+}
+
 function renderOccasions() {
   const selected = OCCASIONS.find(o => o.id === state.occasion) || OCCASIONS[0];
   $('#occasionGrid').innerHTML = `<label class="occasion-select">Choose an occasion<select id="occasionSelect">${OCCASIONS.map(o => `<option value="${o.id}" ${o.id === state.occasion ? 'selected' : ''}>${o.icon} ${o.name}</option>`).join('')}</select><small>${selected.hint}</small></label>`;
   $('#occasionSelect').onchange = e => {
-    state.occasion = e.target.value;
-    state.messageIndex = 0;
-    state.fields = {};
-    if (state.occasion === 'festival') {
-      state.fields.festival = 'Diwali';
-      state.festivalFilter = 'Diwali';
-      selectFestivalTemplate('Diwali');
+    const nextOccasion = e.target.value;
+    if (nextOccasion === 'festival') {
+      state.fields = {};
+      syncFestivalField('Diwali');
     } else {
-      state.festivalFilter = 'all';
-      if (!PRESET_TEMPLATES.some(t => t.id === state.template && !t.festivals)) {
+      state.occasion = nextOccasion;
+      state.messageIndex = 0;
+      state.fields = {};
+      state.festivalFilter = 'General';
+      const current = PRESET_TEMPLATES.find(t => t.id === state.template);
+      if (!current || current.festivals || !templateEligibleForOccasion(current, nextOccasion)) {
         state.template = 'festive';
       }
+      renderOccasions();
+      renderFields();
+      generate();
+      renderFestivalFilter();
     }
-    renderOccasions();
-    renderFields();
-    generate();
-    renderFestivalFilter();
     renderTemplates();
     saveWorking();
   };
@@ -239,22 +284,17 @@ function renderFields() {
       else state.fields[el.dataset.field] = el.value;
     }
     el.oninput = () => {
-      state.fields[el.dataset.field] = el.value;
-      state.messageIndex = 0;
       if (el.dataset.field === 'festival') {
-        state.festivalFilter = el.value;
-        selectFestivalTemplate(el.value);
-        renderFestivalFilter();
+        syncFestivalField(el.value);
+      } else {
+        state.fields[el.dataset.field] = el.value;
+        state.messageIndex = 0;
+        generate();
       }
-      generate();
       renderTemplates();
       saveWorking();
     };
   });
-
-  if (state.occasion === 'festival' && state.fields.festival) {
-    selectFestivalTemplate(state.fields.festival);
-  }
 }
 
 function renderTones() {
@@ -305,24 +345,32 @@ function renderFestivalFilter() {
 
     $$('#templateQuickChips button').forEach(btn => {
       btn.onclick = () => {
-        state.festivalFilter = btn.dataset.filter;
-        if (select) select.value = state.festivalFilter;
-        renderFestivalFilter();
+        if (!syncFestivalField(btn.dataset.filter)) {
+          state.festivalFilter = btn.dataset.filter;
+          if (select) select.value = state.festivalFilter;
+          renderFestivalFilter();
+        }
         renderTemplates();
+        saveWorking();
       };
     });
   }
 }
 
+// A template with an explicit `occasions` allowlist (e.g. the Birthday hero
+// templates) is only eligible when the current occasion is in that list.
+// Templates without the field are occasion-agnostic, same as before this
+// field existed, so no other template's availability changes.
+function templateEligibleForOccasion(t, occasion) {
+  return !t.occasions || t.occasions.includes(occasion);
+}
+
 function templatesForCurrentFilter() {
   const f = state.festivalFilter;
-  if (!f || f === 'all') {
-    return PRESET_TEMPLATES;
-  }
-  if (f === 'General') {
-    return PRESET_TEMPLATES.filter(t => !t.festivals);
-  }
-  return PRESET_TEMPLATES.filter(t => t.festivals?.includes(f));
+  const byFilter = !f || f === 'all' ? PRESET_TEMPLATES
+    : f === 'General' ? PRESET_TEMPLATES.filter(t => !t.festivals)
+    : PRESET_TEMPLATES.filter(t => t.festivals?.includes(f));
+  return byFilter.filter(t => templateEligibleForOccasion(t, state.occasion));
 }
 
 function renderTemplates() {
@@ -336,7 +384,6 @@ function renderTemplates() {
   grid.innerHTML = templates.map(t => {
     const isPoster = t.styleType === 'poster';
     const isActive = !state.usingCustom && state.template === t.id;
-    const miniPillars = isPoster && t.pillars ? `<div class="thumb-pillars">${t.pillars.map(p => `<span>${p.icon}</span>`).join('')}</div>` : '';
     const badgeText = t.badge || (isPoster ? 'POSTER' : 'THEME');
 
     return `
@@ -344,10 +391,9 @@ function renderTemplates() {
         <div class="template-thumb" style="background:${t.background}; color:${t.textColor};">
           <div class="thumb-badge" style="background:${t.accentColor || '#f59e0b'};">${badgeText}</div>
           <div class="thumb-center">
-            ${t.image ? `<img src="${t.image}" alt="" class="thumb-art-img">` : `<span class="thumb-icon">${templateDecor(t)[0]}</span>`}
+            ${t.image ? `<img src="${t.image}" alt="" class="thumb-art-img" style="object-position:50% ${t.imageFocusY ?? 50}%">` : `<span class="thumb-icon">${templateDecor(t)[0]}</span>`}
             <span class="thumb-title">${escapeHtml(t.name.replace(/^(Diwali|Holi|Navratri|Uttarayan|Raksha Bandhan|Janmashtami|Ganesh Chaturthi|Dussehra|Bestu Varas|Independence Day|Valentine's Day|Christmas|Eid|New Year)\s*/i, ''))}</span>
           </div>
-          ${miniPillars}
         </div>
         <div class="template-card-info">
           <strong>${escapeHtml(t.name)}</strong>
@@ -358,8 +404,14 @@ function renderTemplates() {
   }).join('');
 
   $$('.template-card').forEach(b => b.onclick = () => {
+    const t = PRESET_TEMPLATES.find(x => x.id === b.dataset.id);
     state.template = b.dataset.id;
     state.usingCustom = false;
+    if (t) syncFestivalFromTemplate(t);
+    if (t && t.photoFrameDefaults) {
+      Object.assign(state.photoCfg, t.photoFrameDefaults);
+      updatePhotoPreview();
+    }
     renderTemplates();
     saveWorking();
   });
@@ -374,38 +426,61 @@ function design() {
             `linear-gradient(135deg,${c.color1},${c.color2})`;
     return { background: bg, textColor: c.textColor, font: c.font, stickers: c.stickers.map(s => s.emoji), shape: 'soft', border: c.color2 };
   }
-  return PRESET_TEMPLATES.find(t => t.id === state.template) || PRESET_TEMPLATES[0];
+  const t = PRESET_TEMPLATES.find(t => t.id === state.template) || PRESET_TEMPLATES[0];
+  // Defensive: never render a template outside its declared occasions (e.g. a Birthday
+  // hero template) even if state.template and state.occasion somehow disagree — a stale
+  // save, direct state mutation, or a future code path that forgets to reset one of them.
+  if (!templateEligibleForOccasion(t, state.occasion)) {
+    return PRESET_TEMPLATES.find(x => x.id === 'festive') || PRESET_TEMPLATES[0];
+  }
+  return t;
 }
 
 function renderCard() {
   const d = design(), preview = $('#cardPreview'), decor = decorationsForDesign(d), sender = data().sender, l = state.layout, credit = footerCredit(), date = cardDateText();
   const isPoster = !state.usingCustom && d.styleType === 'poster';
+  const isHero = !state.usingCustom && !!d.heroLayout;
+  const isFit = !state.usingCustom && !!d.fitCopy && !isPoster && !isHero;
 
-  preview.className = `card-preview ${isPoster ? 'is-poster' : ''}`;
+  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''} ${isFit ? 'fit-copy-card' : ''}`;
   preview.classList.toggle('has-photo', !!state.photo);
   preview.classList.toggle('has-panel', !!d.panel && !isPoster);
-  preview.style.cssText = `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
+  preview.style.cssText = isHero
+    ? `background:#12100f center/cover no-repeat url(${d.backgroundImage}); color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'Georgia, serif'}; text-align:center; aspect-ratio:4/5`
+    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
 
   const pattern = state.usingCustom ? patternLayer(state.custom.pattern) : '';
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
-    (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
+    (!isPoster && !isHero ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
-  const artSrc = state.photo || d.image;
-
-  if (isPoster) {
-    const festivalName = (d.festival || cardTitleText()).toUpperCase();
-    const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
-    const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
-    const pillarsHtml = (d.pillars || []).map(p => `
-      <div class="infographic-pillar" style="border-color:${d.accentColor || '#f59e0b'}40">
-        <span class="pillar-emoji">${p.icon}</span>
-        <div class="pillar-text">
-          <strong style="color:${d.accentColor || '#f59e0b'}">${escapeHtml(p.title)}</strong>
-          <span>${escapeHtml(p.desc)}</span>
+  if (isHero) {
+    const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+    const fit = fitHeroTitle(d, data().recipient);
+    const titleLinesHtml = fit.lines.map(line =>
+      `<div class="hero-title-line" style="font-size:${(line.fontSize / 1080 * 100).toFixed(3)}cqw;line-height:${fit.lineHeight / line.fontSize}">${escapeHtml(line.text)}</div>`
+    ).join('');
+    preview.innerHTML = `
+      ${date ? `<div class="hero-date" style="color:${d.textColor}">${escapeHtml(date)}</div>` : ''}
+      <div class="hero-title-box" style="top:${area.top}%;left:${area.left}%;width:${area.width}%;height:${area.height}%;color:${d.textColor}">${titleLinesHtml}</div>
+      ${state.photo ? photoMarkup('card') : ''}
+      <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${d.scrimColor || '0,0,0'},.88), rgba(${d.scrimColor || '0,0,0'},0) 55%)">
+        <div class="hero-footer-inner">
+          ${sender ? `<div class="hero-sender" style="color:${d.accentColor || d.textColor}">— ${escapeHtml(sender)}</div>` : ''}
         </div>
       </div>
-    `).join('');
+      ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
+      <div class="card-watermark">MADE WITH WISHCRAFT</div>
+    `;
+  } else if (isPoster) {
+    // Use the synced, user-selected festival (cardTitleText() reads state.fields.festival)
+  // rather than the template's own fixed `festival` field, so a template shared across
+  // more than one festival (e.g. the Independence Day poster also used for Republic Day)
+  // shows the festival the user actually selected, not whichever the template defaults to.
+  const festivalName = cardTitleText().toUpperCase();
+    const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
+    const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
 
+    const posterPhotoClear = state.photo ? Math.max(12, Math.min(72, state.photoCfg.frameY + state.photoCfg.frameSize + 5)) : 0;
     preview.innerHTML = `
       ${pattern}
       <div class="poster-container">
@@ -414,23 +489,20 @@ function renderCard() {
           <div class="poster-subtitle" style="color:${d.accentColor || '#fbbf24'}">${escapeHtml(subtitle)}</div>
         </header>
 
-        <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}">
+        <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}; position:relative">
+          ${state.photo ? photoMarkup('card') : ''}
           ${date ? `<div class="poster-date">${escapeHtml(date)}</div>` : ''}
-          
-          ${artSrc ? `
-            <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
-              <img src="${artSrc}" alt="${escapeHtml(festivalName)}" class="poster-art-img">
-            </div>
-          ` : photoMarkup('card')}
 
-          <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px)">
+          ${!state.photo && d.image ? `
+            <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
+              <img src="${d.image}" alt="${escapeHtml(festivalName)}" class="poster-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
+            </div>
+          ` : ''}
+
+          <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px); margin-top:${posterPhotoClear}%">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
             <p class="poster-message" style="font-size:${l.bodySize}px; line-height:${l.lineHeight / 100}; color:${d.textColor}">${escapeHtml($('#message').value)}</p>
             ${sender ? `<div class="poster-sender" style="color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
-          </div>
-
-          <div class="poster-pillars-grid">
-            ${pillarsHtml}
           </div>
 
           <div class="poster-tagline" style="color:${d.textColor}">
@@ -444,22 +516,51 @@ function renderCard() {
         </footer>
       </div>
     `;
-  } else {
-    const copyTop = copyTopPct();
-    const badgeText = d.badge || 'FESTIVE CELEBRATION';
+  } else if (isFit) {
+    // fitCopy templates: badge/art live in their own fixed absolute zones
+    // (matching the canvas's h*0.11/h*0.23 art geometry exactly), and
+    // .card-copy is a fixed 38%-88% zone whose type sizes come from the same
+    // fitCardCopy() the canvas export calls -- converted to cqw so the
+    // relative proportions match the canvas's px sizing on a 1080-wide space.
+    const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+    if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
+    const cq = px => (px / 1080 * 100).toFixed(3) + 'cqw';
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
-      
+      ${d.badge ? `<div class="fit-badge card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
+      ${state.photo ? photoMarkup('card') : (d.image ? `
+        <div class="fit-art-section" style="border-color:${d.border || '#fbbf24'}">
+          <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
+        </div>
+      ` : '')}
+
+      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="padding-top:${cq(20 * fit.gapScale)}">
+        <h3 style="font-size:${cq(fit.titleSize)};line-height:1.15;margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
+        <p style="font-size:${cq(fit.msgSize)};line-height:1.25">${escapeHtml($('#message').value)}</p>
+        ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
+        ${sender ? `<div class="card-signature" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_SIG_SIZE)}">— ${escapeHtml(sender)}</div>` : ''}
+      </section>
+      ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
+      <div class="card-watermark">MADE WITH WISHCRAFT</div>
+    `;
+  } else {
+    const copyTop = copyTopPct();
+    preview.innerHTML = `
+      ${pattern}
+      ${stickers}
+      ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
+      ${state.photo ? photoMarkup('card') : ''}
+
       <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
-        <div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(badgeText)} ✨</div>
-        
-        ${artSrc ? `
-          <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
-            <img src="${artSrc}" alt="" class="card-art-img">
+        ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
+
+        ${!state.photo && d.image ? `
+          <div class="card-art-section${d.compactArt ? ' compact-art' : ''}" style="border-color:${d.border || '#fbbf24'}${d.compactArt ? ';height:40px' : ''}">
+            <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
           </div>
-        ` : photoMarkup('card')}
+        ` : ''}
 
         <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
@@ -794,14 +895,18 @@ async function install() {
 }
 
 async function makeImage() {
-  const c = $('#exportCanvas'),
+  const c = $('#exportCanvas'), d = design(),
+    isPoster = !state.usingCustom && d.styleType === 'poster',
+    isFit = !state.usingCustom && !!d.fitCopy && !isPoster && !d.heroLayout,
     ratio = state.usingCustom ? state.custom.aspect : 'portrait',
     dims = ratio === 'square' ? [1080, 1080] : ratio === 'landscape' ? [1200, 900] : [1080, 1350];
   c.width = dims[0];
   c.height = dims[1];
-  const x = c.getContext('2d'), d = design(), isPoster = !state.usingCustom && d.styleType === 'poster';
+  const x = c.getContext('2d');
 
-  if (isPoster) {
+  if (!state.usingCustom && d.heroLayout) {
+    await paintHeroCard(x, d, c.width, c.height);
+  } else if (isPoster) {
     await paintPosterCanvas(x, d, c.width, c.height);
   } else {
     await paintBackground(x, d, c.width, c.height);
@@ -827,13 +932,13 @@ async function makeImage() {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
-        const artH = c.height * 0.23;
+        const artH = c.height * (d.compactArt ? 0.08 : 0.23);
         const px = (c.width - artW) / 2;
         const py = c.height * 0.11;
         x.save();
         roundedPath(x, px, py, artW, artH, 24);
         x.clip();
-        drawCoverImage(x, img, px, py, artW, artH);
+        drawCoverImage(x, img, px, py, artW, artH, (d.imageFocusY ?? 50) / 100);
         x.restore();
         x.strokeStyle = d.border || '#fbbf24';
         x.lineWidth = 6;
@@ -842,7 +947,7 @@ async function makeImage() {
       }
     }
     paintDecor(x, d, c.width, c.height);
-    paintCopy(x, d, c.width, c.height);
+    if (isFit) paintFitCopy(x, d, c.width, c.height); else paintCopy(x, d, c.width, c.height);
     const credit = footerCredit();
     if (credit) {
       x.font = '700 20px Arial';
@@ -878,7 +983,11 @@ async function makeImage() {
 }
 
 async function paintPosterCanvas(x, d, w, h) {
-  const festivalName = (d.festival || cardTitleText()).toUpperCase();
+  // Use the synced, user-selected festival (cardTitleText() reads state.fields.festival)
+  // rather than the template's own fixed `festival` field, so a template shared across
+  // more than one festival (e.g. the Independence Day poster also used for Republic Day)
+  // shows the festival the user actually selected, not whichever the template defaults to.
+  const festivalName = cardTitleText().toUpperCase();
   const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
   const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
   const l = state.layout, date = cardDateText(), sender = data().sender, credit = footerCredit();
@@ -933,7 +1042,7 @@ async function paintPosterCanvas(x, d, w, h) {
       x.save();
       roundedPath(x, px, currentY, artW, artH, 20);
       x.clip();
-      drawCoverImage(x, img, px, currentY, artW, artH);
+      drawCoverImage(x, img, px, currentY, artW, artH, (d.imageFocusY ?? 50) / 100);
       x.restore();
       x.strokeStyle = (d.accentColor || '#ea580c') + '55';
       x.lineWidth = 4;
@@ -971,44 +1080,14 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 35;
   }
 
-  // 4 Infographic Pillars
-  const pillars = d.pillars || [];
-  if (pillars.length >= 4) {
-    const pillarTop = h * 0.72;
-    const pillarHeight = h * 0.12;
-    const pillarWidth = (w * 0.9) / 4 - 15;
-    const startX = w * 0.05;
-
-    pillars.slice(0, 4).forEach((p, i) => {
-      const px = startX + i * (pillarWidth + 20);
-      x.save();
-      x.fillStyle = '#f8fafc';
-      x.strokeStyle = (d.accentColor || '#f59e0b') + '55';
-      x.lineWidth = 3;
-      roundedPath(x, px, pillarTop, pillarWidth, pillarHeight, 20);
-      x.fill();
-      x.stroke();
-
-      x.textAlign = 'center';
-      x.font = '36px Arial';
-      x.fillText(p.icon, px + pillarWidth / 2, pillarTop + 42);
-
-      x.font = '800 20px Arial';
-      x.fillStyle = d.accentColor || '#d97706';
-      x.fillText(p.title, px + pillarWidth / 2, pillarTop + 80);
-
-      x.font = '600 16px Arial';
-      x.fillStyle = '#475569';
-      x.fillText(p.desc, px + pillarWidth / 2, pillarTop + 106);
-      x.restore();
-    });
-  }
-
-  // Tagline Banner
+  // Tagline banner -- positioned relative to the flowing content (not a fixed
+  // h*0.88 offset) so there's no leftover blank gap now that the four
+  // health/safety pillar boxes have been removed.
+  const taglineY = Math.min(Math.max(currentY + 40, h * 0.74), h * 0.86);
   x.font = 'italic 700 22px Arial, sans-serif';
   x.fillStyle = d.textColor || '#1e293b';
   x.textAlign = 'center';
-  x.fillText(tagline, w / 2, h * 0.88);
+  x.fillText(tagline, w / 2, taglineY);
 
   // Footer & credits
   x.fillStyle = '#64748b';
@@ -1018,6 +1097,124 @@ async function paintPosterCanvas(x, d, w, h) {
   }
   x.font = '700 16px Arial';
   x.fillText('MADE WITH WISHCRAFT', w / 2, h * 0.96);
+}
+
+// ---- fitCopy templates: shrink-to-fit typography inside a FIXED 1080x1350
+// canvas / 4:5 card, instead of growing the card or squeezing the artwork.
+// Badge and artwork sit in their own fixed-size/position zones (see
+// .fit-badge/.fit-art-section in fixes.css and the matching h*0.11/h*0.23
+// canvas geometry below); .card-copy occupies a third fixed zone, h*0.38 to
+// h*0.88, exactly like the pre-existing (non-fitCopy) card layout already
+// reserves for text. fitCardCopy() is the ONE function both the DOM preview
+// (via cqw, since .card-preview is a cqw container) and paintFitCopy() (via
+// px on the 1080-wide canvas) call for that zone's sizing -- same word-wrap,
+// same shrink order (gaps before font), same enforced minimums, so both
+// surfaces measure and decide identically, just expressed in different units.
+const FIT_TITLE_MAX = 84, FIT_TITLE_MIN = 34;
+const FIT_MSG_MAX = 46, FIT_MSG_MIN = 24;
+const FIT_TAGLINE_SIZE = 26, FIT_SIG_SIZE = 36;
+const FIT_GAP_MIN = 0.45;
+// Canvas measureText() and real browser CSS text layout don't wrap at exactly
+// the same point for the same nominal font -- small font-metric/kerning
+// differences can push the DOM to one more line than the offscreen canvas
+// measurement predicted. Measuring against a narrower width than the real
+// 84%-wide box, and budgeting less than the real 50%-tall zone, is a one-sided
+// safety margin: it only ever makes the canvas measurement UNDER-estimate how
+// much fits, so the real (wider, taller) DOM box always has at least as much
+// room as what was measured -- never less, so it can never actually overflow.
+const FIT_BUDGET_H = (1350 * 0.88 - 1350 * 0.38) * 0.88; // 594, was 675
+const FIT_MAX_WIDTH = 1080 * 0.78; // narrower than .card-copy's real 84% width
+
+function fitCardCopy(d, title, message, opts) {
+  const { hasSender = false, tagline = '' } = opts || {};
+  const family = FONT_MAP[d.font] || 'sans-serif';
+  const ctx = getFitContext();
+
+  function measure(titleSize, msgSize, gapScale) {
+    ctx.font = `800 ${titleSize}px ${family}`;
+    const titleLines = measureLines(ctx, title, FIT_MAX_WIDTH);
+    ctx.font = `600 ${msgSize}px ${family}`;
+    const msgLines = measureLines(ctx, message, FIT_MAX_WIDTH);
+    let tagLines = [];
+    if (tagline) {
+      ctx.font = `700 ${FIT_TAGLINE_SIZE}px ${family}`;
+      tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
+    }
+    const topPad = 20 * gapScale;
+    const titleH = titleLines.length * titleSize * 1.15;
+    const titleGap = 14 * gapScale;
+    const msgH = msgLines.length * msgSize * 1.25;
+    const tagGap = tagline ? 20 * gapScale : 0;
+    const tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3;
+    const sigGap = hasSender ? 20 * gapScale : 0;
+    const sigH = hasSender ? FIT_SIG_SIZE * 1.2 : 0;
+    const total = topPad + titleH + titleGap + msgH + tagGap + tagH + sigGap + sigH;
+    return { total, titleLines, msgLines, tagLines };
+  }
+
+  // Phase 1: full (preferred) font size, shrink inter-element gaps first.
+  for (let g = 1; g >= FIT_GAP_MIN; g -= 0.05) {
+    const r = measure(FIT_TITLE_MAX, FIT_MSG_MAX, g);
+    if (r.total <= FIT_BUDGET_H) return { titleSize: FIT_TITLE_MAX, msgSize: FIT_MSG_MAX, gapScale: g, fits: true, ...r };
+  }
+  // Phase 2: gaps at floor, shrink title+message together down to enforced minimums.
+  for (let s = 1; s >= 0; s -= 0.02) {
+    const ts = FIT_TITLE_MIN + (FIT_TITLE_MAX - FIT_TITLE_MIN) * s;
+    const ms = FIT_MSG_MIN + (FIT_MSG_MAX - FIT_MSG_MIN) * s;
+    const r = measure(ts, ms, FIT_GAP_MIN);
+    if (r.total <= FIT_BUDGET_H) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, ...r };
+  }
+  // Truly infeasible even at floor sizes (only possible with pathological
+  // user-typed text, not any generated message) -- caller must warn rather
+  // than clip/truncate; render at floor sizes with overflow left visible.
+  return { titleSize: FIT_TITLE_MIN, msgSize: FIT_MSG_MIN, gapScale: FIT_GAP_MIN, fits: false, ...measure(FIT_TITLE_MIN, FIT_MSG_MIN, FIT_GAP_MIN) };
+}
+
+function paintFitCopy(x, d, w, h) {
+  const sender = data().sender, family = FONT_MAP[d.font] || 'sans-serif';
+  const top = h * 0.38;
+  const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+  if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
+
+  x.textAlign = 'center';
+  x.textBaseline = 'top';
+  let y = top + 20 * fit.gapScale;
+
+  if (d.panel) {
+    x.save();
+    const isDark = d.background && (d.background.includes('#0') || d.background.includes('#1') || d.background.includes('#2') || d.background.includes('#3') || d.background.includes('#4') || d.background.includes('#7f') || d.background.includes('#78') || d.background.includes('#45') || d.background.includes('#4a'));
+    x.fillStyle = isDark ? 'rgba(15, 6, 6, 0.75)' : 'rgba(255, 253, 250, 0.92)';
+    x.strokeStyle = d.border || (isDark ? '#fbbf24' : '#e2e8f0');
+    x.lineWidth = 3;
+    roundedPath(x, w * .07, top - 12, w * .86, fit.total + 24, 24);
+    x.fill();
+    x.stroke();
+    x.restore();
+    x.fillStyle = isDark ? '#fffdfa' : '#1e112a';
+  } else {
+    x.fillStyle = d.textColor || '#ffffff';
+  }
+
+  x.font = `800 ${fit.titleSize}px ${family}`;
+  y = drawLines(x, fit.titleLines, w / 2, y, fit.titleSize * 1.15);
+  y += 14 * fit.gapScale;
+
+  x.font = `600 ${fit.msgSize}px ${family}`;
+  y = drawLines(x, fit.msgLines, w / 2, y, fit.msgSize * 1.25);
+
+  if (d.tagline && fit.tagLines.length) {
+    y += 20 * fit.gapScale;
+    x.font = `italic 700 ${FIT_TAGLINE_SIZE}px ${family}`;
+    x.fillStyle = d.textColor || '#ffffff';
+    y = drawLines(x, fit.tagLines, w / 2, y, FIT_TAGLINE_SIZE * 1.3);
+  }
+
+  if (sender) {
+    y += 20 * fit.gapScale;
+    x.font = `700 ${FIT_SIG_SIZE}px ${family}`;
+    x.fillStyle = d.accentColor || '#f59e0b';
+    x.fillText(`— ${sender}`, w / 2, y);
+  }
 }
 
 function paintCopy(x, d, w, h) {
@@ -1137,6 +1334,177 @@ function paintPhoto(x, img, px, py, size) {
   x.setLineDash([]);
 }
 
+let _fitCtx = null;
+function getFitContext() {
+  if (!_fitCtx) _fitCtx = document.createElement('canvas').getContext('2d');
+  return _fitCtx;
+}
+
+function measureTextWidth(text, fontWeight, fontSizePx, fontFamily) {
+  const ctx = getFitContext();
+  ctx.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
+  return ctx.measureText(text).width;
+}
+
+// Fits "Happy Birthday, {name}!" into a logical-unit box (same numeric space is
+// reused as 1080-wide canvas px for export and as cqw-of-container for the DOM
+// preview) so both surfaces compute an identical result from identical inputs.
+function fitGreetingHeading(name, opts) {
+  const {
+    maxWidth, maxHeight, startSize = 96, minSize = 34, floorSize = 14,
+    fontFamily = 'Georgia, serif', fontWeight = 800, lineHeightRatio = 1.15
+  } = opts;
+  const prefix = 'Happy Birthday,';
+  const safeName = String(name || 'Friend').trim() || 'Friend';
+  const nameLine = `${safeName}!`;
+  const full = `${prefix} ${nameLine}`;
+
+  const fitsBox = (lines, sizes) => {
+    const lineH = Math.max(...sizes) * lineHeightRatio;
+    if (lines.length * lineH > maxHeight) return false;
+    return lines.every((l, i) => measureTextWidth(l, fontWeight, sizes[i], fontFamily) <= maxWidth);
+  };
+
+  // Only accept a single-line fit while it stays reasonably large — a technically-fitting
+  // but tiny single line (long name squeezed edge-to-edge) is worse than a well-sized 2-line wrap.
+  const singleLineFloor = Math.max(minSize, startSize * 0.62);
+  for (let size = startSize; size >= singleLineFloor; size -= 2) {
+    if (fitsBox([full], [size])) return { lines: [{ text: full, fontSize: size }], lineHeight: size * lineHeightRatio };
+  }
+
+  for (let size = startSize; size >= minSize; size -= 2) {
+    if (fitsBox([prefix, nameLine], [size, size])) {
+      return { lines: [{ text: prefix, fontSize: size }, { text: nameLine, fontSize: size }], lineHeight: size * lineHeightRatio };
+    }
+  }
+
+  const words = nameLine.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    const wrapped = [];
+    let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if (!cur || measureTextWidth(test, fontWeight, minSize, fontFamily) <= maxWidth) cur = test;
+      else { wrapped.push(cur); cur = w; }
+    });
+    if (cur) wrapped.push(cur);
+    const lines = [prefix, ...wrapped];
+    if (fitsBox(lines, lines.map(() => minSize))) {
+      return { lines: lines.map(t => ({ text: t, fontSize: minSize })), lineHeight: minSize * lineHeightRatio };
+    }
+    let size = minSize;
+    while (size > floorSize && !fitsBox(lines, lines.map(() => size))) size -= 1;
+    size = Math.max(size, floorSize);
+    return { lines: lines.map(t => ({ text: t, fontSize: size })), lineHeight: size * lineHeightRatio, compact: true };
+  }
+
+  // Single unbroken name still too wide at minSize: shrink that line alone rather than clip it.
+  let nameSize = minSize;
+  while (nameSize > floorSize && measureTextWidth(nameLine, fontWeight, nameSize, fontFamily) > maxWidth) nameSize -= 1;
+  nameSize = Math.max(nameSize, floorSize);
+  return {
+    lines: [{ text: prefix, fontSize: minSize }, { text: nameLine, fontSize: nameSize }],
+    lineHeight: Math.max(minSize, nameSize) * lineHeightRatio,
+    compact: nameSize < minSize
+  };
+}
+
+// The ONE set of fit parameters for hero-template greeting headings. Both
+// renderCard() (DOM preview) and paintHeroCard() (PNG export) call this same
+// function with the same template's d.titleArea, so the safe area, starting
+// size, minimum size, wrapping decisions, line count and line height are
+// identical by construction, not by separately-maintained matching constants.
+const HERO_TITLE_FIT = { startSize: 96, minSize: 40, floorSize: 18, fontWeight: 800, lineHeightRatio: 1.12 };
+function fitHeroTitle(d, name) {
+  const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+  return fitGreetingHeading(name, {
+    maxWidth: area.width / 100 * 1080,
+    maxHeight: area.height / 100 * 1350,
+    startSize: HERO_TITLE_FIT.startSize,
+    minSize: HERO_TITLE_FIT.minSize,
+    floorSize: HERO_TITLE_FIT.floorSize,
+    fontFamily: FONT_MAP[d.font] || 'Georgia, serif',
+    fontWeight: HERO_TITLE_FIT.fontWeight,
+    lineHeightRatio: HERO_TITLE_FIT.lineHeightRatio
+  });
+}
+
+async function paintHeroCard(x, d, w, h) {
+  const img = d.backgroundImage ? await loadImg(d.backgroundImage) : null;
+  if (img) drawCoverImage(x, img, 0, 0, w, h);
+  else { x.fillStyle = '#12100f'; x.fillRect(0, 0, w, h); }
+
+  const family = FONT_MAP[d.font] || 'Georgia, serif';
+  const date = cardDateText();
+  if (date) {
+    x.save();
+    x.fillStyle = d.textColor || '#ffffff';
+    x.globalAlpha = .85;
+    x.textAlign = 'right';
+    x.textBaseline = 'top';
+    x.font = `700 ${Math.round(h * 0.0185)}px Arial`;
+    x.fillText(date, w * 0.94, h * 0.028);
+    x.restore();
+  }
+
+  const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+  const boxX = w * area.left / 100, boxY = h * area.top / 100, boxW = w * area.width / 100, boxH = h * area.height / 100;
+  const fit = fitHeroTitle(d, data().recipient);
+  x.textAlign = 'center';
+  x.textBaseline = 'top';
+  x.fillStyle = d.textColor || '#ffffff';
+  let ty = boxY + Math.max(0, (boxH - fit.lines.length * fit.lineHeight) / 2);
+  fit.lines.forEach(line => {
+    x.font = `800 ${line.fontSize}px ${family}`;
+    x.fillText(line.text, boxX + boxW / 2, ty);
+    ty += fit.lineHeight;
+  });
+
+  const scrimTop = h * 0.78;
+  const grad = x.createLinearGradient(0, h, 0, scrimTop);
+  grad.addColorStop(0, `rgba(${d.scrimColor || '0,0,0'},0.88)`);
+  grad.addColorStop(1, `rgba(${d.scrimColor || '0,0,0'},0)`);
+  x.fillStyle = grad;
+  x.fillRect(0, scrimTop, w, h - scrimTop);
+
+  if (state.photo) {
+    const pimg = await loadImg(state.photo);
+    if (pimg) {
+      const defaults = d.photoFrameDefaults || {};
+      const frameSize = defaults.frameSize ?? state.photoCfg.frameSize;
+      const frameY = defaults.frameY ?? state.photoCfg.frameY;
+      const size = Math.min(w, h) * frameSize / 100;
+      const px = (w - size) / 2, py = h * frameY / 100;
+      paintPhoto(x, pimg, px, py, size);
+    }
+  }
+
+  const sender = data().sender;
+  const credit = footerCredit();
+  x.textAlign = 'center';
+  x.textBaseline = 'alphabetic';
+  if (sender) {
+    x.font = `700 ${Math.round(h * 0.023)}px ${family}`;
+    x.fillStyle = d.accentColor || d.textColor || '#ffffff';
+    x.fillText(`— ${sender}`, w / 2, h * 0.90);
+  }
+
+  if (credit) {
+    x.font = '700 20px Arial';
+    x.globalAlpha = .72;
+    x.textAlign = 'center';
+    x.fillStyle = d.textColor || '#ffffff';
+    x.fillText(credit, w / 2, h * .955);
+    x.globalAlpha = 1;
+  }
+  x.font = '700 18px Arial';
+  x.globalAlpha = .65;
+  x.textAlign = 'center';
+  x.fillStyle = d.textColor || '#ffffff';
+  x.fillText('MADE WITH WISHCRAFT', w / 2, h * .975);
+  x.globalAlpha = 1;
+}
+
 async function paintBackground(x, d, w, h) {
   const custom = state.usingCustom ? state.custom : null;
   if (custom?.backgroundImage) {
@@ -1224,7 +1592,8 @@ function templateDecor(t) {
 
 function decorationsForDesign(d) {
   if (d.decor) return d.decor;
-  return (d.stickers?.length ? d.stickers : occasionDecor()).map((emoji, i) => decorItem(emoji, i));
+  const stickers = d.festivals ? (d.stickers?.length ? d.stickers : occasionDecor()) : occasionDecor();
+  return stickers.map((emoji, i) => decorItem(emoji, i));
 }
 
 function decorItem(emoji, i) {
@@ -1237,20 +1606,30 @@ function stickerStyle(s, i) {
 }
 
 function selectFestivalTemplate(name) {
+  // Falls back to a general template when a festival has no dedicated design yet
+  // (e.g. Thanksgiving currently has none), so state.template never dangles on
+  // whatever unrelated design happened to be selected before.
   const match = PRESET_TEMPLATES.find(t => t.festivals?.includes(name) && t.styleType === 'poster') || PRESET_TEMPLATES.find(t => t.festivals?.includes(name));
-  if (match) {
-    state.template = match.id;
-    state.usingCustom = false;
-  }
+  state.template = match ? match.id : 'festive';
+  state.usingCustom = false;
+}
+
+// Card-headline-only display names. The Festival selector/category/filter labels
+// keep the full name (e.g. FESTIVAL_OPTIONS, template category text) -- only the
+// generated greeting headline (live preview, PNG export, poster banner) is shortened.
+const FESTIVAL_HEADLINE_OVERRIDES = { 'Bestu Varas (Gujarati New Year)': 'New Year' };
+function festivalHeadline(name) {
+  return FESTIVAL_HEADLINE_OVERRIDES[name] || name;
 }
 
 function cardTitleText() {
   const d = data();
-  return d.festival || 'Festival';
+  return festivalHeadline(d.festival) || 'Festival';
 }
 
 function cardTitle() {
   const d = data(), name = subjectFor(state.occasion, d);
+  const festivalName = festivalHeadline(d.festival) || 'Festival';
   return {
     birthday: `Happy Birthday, ${name}!`,
     anniversary: `Happy Anniversary, ${name}!`,
@@ -1260,7 +1639,7 @@ function cardTitle() {
     graduation: `Congratulations, ${name}!`,
     retirement: `Happy Retirement, ${name}!`,
     getwell: `Get Well Soon, ${name}!`,
-    festival: d.recipient ? `Happy ${d.festival || 'Festival'}, ${name}!` : `Happy ${d.festival || 'Festival'}!`,
+    festival: d.recipient ? `Happy ${festivalName}, ${name}!` : `Happy ${festivalName}!`,
     thanks: `Thank You, ${name}!`,
     custom: `${d.title || 'Special Wishes'}, ${name}!`
   }[state.occasion] || `Best Wishes, ${name}!`;
@@ -1273,11 +1652,6 @@ function copyTopPct() {
 
 function focusPct(value) {
   return Math.max(0, Math.min(100, (Number(value) + 100) / 2));
-}
-
-function drawCoverImage(x, img, dx, dy, w, h) {
-  const scale = Math.max(w / img.width, h / img.height), sw = w / scale, sh = h / scale, sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-  x.drawImage(img, sx, sy, sw, sh, dx, dy, w, h);
 }
 
 function footerCredit() {
@@ -1369,13 +1743,13 @@ function loadImg(src) {
   });
 }
 
-function drawCoverImage(x, img, dx, dy, dw, dh) {
+function drawCoverImage(x, img, dx, dy, dw, dh, focusY = 0.5, focusX = 0.5) {
   if (!img || !img.width || !img.height) return;
   const scale = Math.max(dw / img.width, dh / img.height);
   const sw = dw / scale;
   const sh = dh / scale;
-  const sx = (img.width - sw) / 2;
-  const sy = (img.height - sh) / 2;
+  const sx = (img.width - sw) * focusX;
+  const sy = (img.height - sh) * focusY;
   try {
     x.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   } catch (e) {

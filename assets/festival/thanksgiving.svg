@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="tg_sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde8c8"/>
+      <stop offset="55%" stop-color="#f7cf94"/>
+      <stop offset="100%" stop-color="#e8a655"/>
+    </linearGradient>
+    <linearGradient id="tg_table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a5a34"/>
+      <stop offset="100%" stop-color="#6b4423"/>
+    </linearGradient>
+    <radialGradient id="tg_glow" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#fff3d6" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#fff3d6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#tg_sky)"/>
+  <circle cx="400" cy="150" r="260" fill="url(#tg_glow)"/>
+
+  <!-- Scattered autumn leaves -->
+  <g opacity="0.9">
+    <path d="M90 90 C70 70 70 40 90 25 C110 40 110 70 90 90 Z" fill="#c2410c" transform="rotate(20 90 60)"/>
+    <path d="M710 70 C690 50 690 20 710 5 C730 20 730 50 710 70 Z" fill="#d97706" transform="rotate(-15 710 40)"/>
+    <path d="M650 200 C635 185 635 162 650 150 C665 162 665 185 650 200 Z" fill="#eab308" transform="rotate(35 650 175)"/>
+    <path d="M130 220 C115 205 115 182 130 170 C145 182 145 205 130 220 Z" fill="#9a3412" transform="rotate(-25 130 195)"/>
+    <path d="M400 55 C388 43 388 24 400 15 C412 24 412 43 400 55 Z" fill="#ea580c" transform="rotate(10 400 35)"/>
+  </g>
+
+  <!-- Wheat stalks, left -->
+  <g transform="translate(150 330)">
+    <line x1="0" y1="0" x2="-18" y2="-140" stroke="#b45309" stroke-width="4" stroke-linecap="round"/>
+    <line x1="14" y1="4" x2="4" y2="-150" stroke="#b45309" stroke-width="4" stroke-linecap="round"/>
+    <line x1="-14" y1="4" x2="-34" y2="-120" stroke="#b45309" stroke-width="4" stroke-linecap="round"/>
+    <g fill="#f2c14e">
+      <ellipse cx="-18" cy="-140" rx="7" ry="14" transform="rotate(-10 -18 -140)"/>
+      <ellipse cx="4" cy="-150" rx="7" ry="14"/>
+      <ellipse cx="-34" cy="-120" rx="7" ry="14" transform="rotate(-18 -34 -120)"/>
+      <ellipse cx="-24" cy="-118" rx="6" ry="12" transform="rotate(-6 -24 -118)"/>
+      <ellipse cx="-2" cy="-128" rx="6" ry="12" transform="rotate(4 -2 -128)"/>
+      <ellipse cx="-40" cy="-95" rx="6" ry="12" transform="rotate(-20 -40 -95)"/>
+    </g>
+  </g>
+
+  <!-- Table -->
+  <rect x="0" y="360" width="800" height="140" fill="url(#tg_table)"/>
+  <rect x="0" y="360" width="800" height="6" fill="#5a3a1c" opacity="0.6"/>
+
+  <!-- Cornucopia (horn of plenty) -->
+  <g transform="translate(560 350)">
+    <path d="M-40 30 C-90 20 -140 -20 -150 -80 C-152 -100 -140 -110 -120 -100 C-60 -70 10 -30 40 20 C55 45 30 55 -40 30 Z" fill="#8b5e34"/>
+    <path d="M-40 30 C-90 20 -140 -20 -150 -80 C-152 -100 -140 -110 -120 -100" fill="none" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/>
+    <!-- spilling produce -->
+    <circle cx="10" cy="8" r="26" fill="#ea580c"/>
+    <path d="M10 -16 q4 -10 12 -10" stroke="#4d7c0f" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle cx="-40" cy="22" r="20" fill="#b91c1c"/>
+    <circle cx="-75" cy="6" r="16" fill="#ca8a04"/>
+    <circle cx="-100" cy="-14" r="14" fill="#7c2d12"/>
+    <ellipse cx="45" cy="26" rx="18" ry="14" fill="#65a30d"/>
+    <circle cx="-15" cy="40" r="12" fill="#c2410c"/>
+  </g>
+
+  <!-- Three pumpkins on the table -->
+  <g>
+    <g transform="translate(140 400)">
+      <ellipse cx="0" cy="10" rx="52" ry="38" fill="#ea580c"/>
+      <path d="M-52 10 Q0 -22 52 10" fill="none" stroke="#c2410c" stroke-width="3" opacity="0.6"/>
+      <path d="M-26 -20 Q0 -36 26 -20" fill="none" stroke="#c2410c" stroke-width="3" opacity="0.6"/>
+      <path d="M0 -20 Q0 -34 0 -40" fill="none" stroke="#c2410c" stroke-width="3" opacity="0.6"/>
+      <rect x="-5" y="-46" width="10" height="16" rx="4" fill="#65a30d"/>
+      <path d="M6 -42 q14 -6 18 6" fill="none" stroke="#4d7c0f" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(260 415)">
+      <ellipse cx="0" cy="8" rx="40" ry="30" fill="#f97316"/>
+      <path d="M-40 8 Q0 -16 40 8" fill="none" stroke="#c2410c" stroke-width="2.5" opacity="0.6"/>
+      <path d="M-20 -14 Q0 -26 20 -14" fill="none" stroke="#c2410c" stroke-width="2.5" opacity="0.6"/>
+      <rect x="-4" y="-34" width="8" height="12" rx="3" fill="#65a30d"/>
+    </g>
+    <g transform="translate(60 420)">
+      <ellipse cx="0" cy="6" rx="32" ry="24" fill="#d97706"/>
+      <path d="M-32 6 Q0 -12 32 6" fill="none" stroke="#9a3412" stroke-width="2" opacity="0.6"/>
+      <rect x="-3" y="-26" width="6" height="10" rx="2.5" fill="#65a30d"/>
+    </g>
+  </g>
+
+  <!-- Small scattered leaves on the table -->
+  <g fill="#c2410c" opacity="0.85">
+    <path d="M380 430 C368 420 368 404 380 396 C392 404 392 420 380 430 Z" transform="rotate(30 380 413)"/>
+    <path d="M460 450 C450 442 450 428 460 421 C470 428 470 442 460 450 Z" fill="#eab308" transform="rotate(-20 460 435)"/>
+    <path d="M680 420 C668 410 668 394 680 386 C692 394 692 410 680 420 Z" fill="#9a3412" transform="rotate(15 680 403)"/>
+  </g>
+</svg>

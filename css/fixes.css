@@ -37,12 +37,18 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .card-preview.has-panel .placed-sticker{opacity:.78}
 .card-signature{font-size:clamp(17px,4.4vw,27px);font-weight:800;margin-top:24px}
 .card-date{position:absolute;left:7%;right:7%;top:5%;z-index:5;font:800 12px var(--font);opacity:.72;text-align:center}
-.developer-credit{position:absolute;left:7%;right:7%;bottom:6.4%;z-index:5;font:700 10px var(--font);letter-spacing:.04em;opacity:.72;text-align:center}
+.developer-credit{position:absolute;left:7%;right:7%;bottom:8%;z-index:5;font:700 10px var(--font);letter-spacing:.04em;opacity:.72;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-preview.has-photo{align-items:stretch;padding:0}
 .card-preview.has-photo .card-copy{max-height:none}
-.nav-fab{position:fixed;z-index:70;bottom:88px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border-radius:999px;padding:10px 14px;font-weight:800}
+.nav-fab{position:fixed;z-index:70;top:80px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border-radius:999px;padding:10px 14px;font-weight:800}
 .nav-back{left:14px}
 .nav-top{right:14px}
+.modal.active~.nav-fab{display:none}
+/* Reserve clearance below the topbar so the fixed Back/Top pills never sit on top of page content (eyebrow, headings, inputs) */
+.view{padding-top:56px}
+
+/* Regression fix: remove obsolete decorative overlay text that collides with real template art/titles */
+.template-thumb::after{content:none}
 
 /* ==================== FESTIVAL FILTER & TEMPLATE STYLING ==================== */
 .template-filter-bar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:0 0 20px;box-shadow:0 2px 10px #0002}
@@ -86,18 +92,47 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .pillar-text strong{font-size:8.5px;font-weight:900;display:block;letter-spacing:.02em;line-height:1.1}
 .pillar-text span{font-size:7.5px;font-weight:600;color:#475569;display:block;line-height:1.1;margin-top:1px}
 .poster-tagline{text-align:center;font-size:10.5px;font-weight:700;font-style:italic;margin:2px 0;line-height:1.25;opacity:.9}
+/* Poster footer: give it real layout so the credit line and watermark always
+   stack in normal flow with a defined gap, instead of .card-watermark's
+   position:absolute (meant for the non-poster card layout) floating
+   independently near the bottom of the whole card and landing on top of
+   whatever the footer's natural flow position happens to be. */
+.poster-footer{flex-shrink:0;padding:6px 12px 10px;text-align:center;background:inherit}
+.poster-credit{font:700 9px var(--font);color:#64748b;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.poster-footer .card-watermark{position:static;display:block;bottom:auto}
 .poster-art-section{width:100%;height:135px;overflow:hidden;border-radius:12px;margin:3px 0 6px;border:1.5px solid rgba(0,0,0,.08);background:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .poster-art-img{width:100%;height:100%;object-fit:cover;display:block}
 
-.card-top-badge{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.08em;padding:4px 12px;border-radius:999px;margin:0 auto 10px;text-transform:uppercase;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.card-top-badge{display:inline-block;flex-shrink:0;font-size:10px;font-weight:900;letter-spacing:.08em;padding:4px 12px;border-radius:999px;margin:0 auto 10px;text-transform:uppercase;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+/* .card-copy is a flex column with overflow:hidden; without flex-shrink:0 a long
+   title/message/tagline combination squeezes this box down to near-zero height
+   instead of clipping the text, making the artwork effectively disappear. */
 .card-art-section{width:min(90%,260px);height:120px;overflow:hidden;border-radius:14px;margin:0 auto 12px;border:2.5px solid #fbbf24;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;background:#111}
+/* Opt-in only (state.compactArt / template.compactArt): keep the shared
+   .card-art-section default untouched for every existing template -- only
+   Thanksgiving's minimal card, which is short on vertical room, gets a
+   protected, shrink-proof, smaller art box via inline style below. */
+.card-art-section.compact-art{flex-shrink:0}
 .card-art-img{width:100%;height:100%;object-fit:cover;display:block}
 .card-tagline-text{font-size:12px;font-weight:700;margin-top:8px;opacity:.9;line-height:1.3}
+
+/* fitCopy templates (opt-in via template.fitCopy): card stays the standard
+   fixed 4:5 box. Badge and artwork move out of .card-copy's flow into their
+   own absolutely-positioned zones at a fixed size/position (matching the
+   canvas export's art geometry exactly: top 11%, height 23% of the card) so
+   artwork can never be squeezed. .card-copy becomes a third fixed zone
+   (top 38%-88%) whose title/message font sizes and gaps are pre-computed by
+   fitCardCopy() to always fit that zone -- see js/app.js. */
+.fit-badge{position:absolute;left:8%;right:8%;top:2%;z-index:4;text-align:center}
+.fit-art-section{position:absolute;left:11%;top:11%;width:78%;height:23%;overflow:hidden;border-radius:14px;border:2.5px solid #fbbf24;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:3;background:#111}
+.card-copy.fit-copy{display:block;top:38%;bottom:12%;overflow:visible}
+.card-copy.fit-copy h3{margin:0}
+.card-copy.fit-copy p{margin:0}
 
 @media(max-width:520px){
   .poster-art-section{height:110px}
   .card-art-section{height:100px;width:95%}
-  .view{padding:16px 12px}
+  .view{padding:46px 12px 16px}
   .panel{padding:16px;border-radius:14px}
   .topbar{height:62px}
   .topbar h1{font-size:18px}
@@ -120,5 +155,21 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
   .card-signature{font-size:19px;margin-top:18px}
   .compact-grid{grid-template-columns:1fr 1fr}
   .action-grid{grid-template-columns:1fr}
-  .nav-fab{bottom:84px;padding:9px 12px;font-size:13px}
+  .nav-fab{top:66px;padding:9px 12px;font-size:13px}
 }
+
+@media(max-width:430px){
+  .template-grid{grid-template-columns:1fr}
+}
+
+/* Hero (full-bleed photographic) card layout — Birthday templates */
+.card-preview{container-type:inline-size}
+.card-preview.is-hero{background-repeat:no-repeat}
+.hero-date{position:absolute;top:2.8%;right:5%;font-weight:700;font-size:3.4cqw;opacity:.85;z-index:3;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+.hero-title-box{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3;pointer-events:none}
+.hero-title-line{font-weight:800;white-space:nowrap;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+.hero-footer-scrim{position:absolute;left:0;right:0;bottom:0;top:78%;z-index:2;display:flex;align-items:flex-end}
+.hero-footer-inner{width:100%;padding:4% 7% 20%;display:flex;flex-direction:column;align-items:center;gap:1.6%}
+.hero-sender{font-size:2.7cqw;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.25)}
+.card-preview.is-hero .card-photo-frame{z-index:3}
+.card-preview.is-hero .developer-credit,.card-preview.is-hero .card-watermark{z-index:4}
