@@ -767,6 +767,42 @@ const PRESET_TEMPLATES = [
 
   // ==================== GENERAL THEMES ====================
   {
+    id: 'birthday-elegant',
+    name: 'Birthday Elegant Gold & Candlelight',
+    category: 'General · Photographic Elegant',
+    styleType: 'photo',
+    heroLayout: true,
+    backgroundImage: 'assets/birthday/birthday-elegant.jpg',
+    image: 'assets/birthday/birthday-elegant.jpg',
+    background: 'linear-gradient(160deg,#2a2118,#0e0b08)',
+    textColor: '#f6ecd9',
+    accentColor: '#e0b06c',
+    font: 'serif',
+    shape: 'soft',
+    border: '#e0b06c',
+    titleArea: { top: 4, left: 4, width: 92, height: 30 },
+    scrimColor: '10,7,4',
+    photoFrameDefaults: { frameY: 37, frameSize: 15 }
+  },
+  {
+    id: 'birthday-bright',
+    name: 'Birthday Bright Confetti & Balloons',
+    category: 'General · Photographic Bright',
+    styleType: 'photo',
+    heroLayout: true,
+    backgroundImage: 'assets/birthday/birthday-bright.jpg',
+    image: 'assets/birthday/birthday-bright.jpg',
+    background: 'linear-gradient(160deg,#fff7ec,#ffe6c2)',
+    textColor: '#7a3b1e',
+    accentColor: '#e44f77',
+    font: 'display',
+    shape: 'soft',
+    border: '#ffb703',
+    titleArea: { top: 5, left: 6, width: 88, height: 26 },
+    scrimColor: '255,250,242',
+    photoFrameDefaults: { frameY: 37, frameSize: 15 }
+  },
+  {
     id: 'festive',
     name: 'Festive Celebration',
     category: 'General · Vibrant & Party',

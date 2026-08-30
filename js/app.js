@@ -401,6 +401,10 @@ function renderTemplates() {
     state.template = b.dataset.id;
     state.usingCustom = false;
     if (t) syncFestivalFromTemplate(t);
+    if (t && t.photoFrameDefaults) {
+      Object.assign(state.photoCfg, t.photoFrameDefaults);
+      updatePhotoPreview();
+    }
     renderTemplates();
     saveWorking();
   });
@@ -421,17 +425,49 @@ function design() {
 function renderCard() {
   const d = design(), preview = $('#cardPreview'), decor = decorationsForDesign(d), sender = data().sender, l = state.layout, credit = footerCredit(), date = cardDateText();
   const isPoster = !state.usingCustom && d.styleType === 'poster';
+  const isHero = !state.usingCustom && !!d.heroLayout;
 
-  preview.className = `card-preview ${isPoster ? 'is-poster' : ''}`;
+  preview.className = `card-preview ${isPoster ? 'is-poster' : ''} ${isHero ? 'is-hero' : ''}`;
   preview.classList.toggle('has-photo', !!state.photo);
   preview.classList.toggle('has-panel', !!d.panel && !isPoster);
-  preview.style.cssText = `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
+  preview.style.cssText = isHero
+    ? `background:#12100f center/cover no-repeat url(${d.backgroundImage}); color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'Georgia, serif'}; text-align:center; aspect-ratio:4/5`
+    : `background:${d.background}; color:${d.textColor}; font-family:${FONT_MAP[d.font] || 'sans-serif'}; text-align:${state.usingCustom ? state.custom.alignment : 'center'}; aspect-ratio:${state.usingCustom ? aspectValue(state.custom.aspect) : '4/5'}`;
 
   const pattern = state.usingCustom ? patternLayer(state.custom.pattern) : '';
   const stickers = state.usingCustom ? state.custom.stickers.map(s => `<span class="placed-sticker" style="left:${s.x}%;top:${s.y}%;font-size:${s.size}px;transform:rotate(${s.rotation}deg)">${s.emoji}</span>`).join('') :
-    (!isPoster ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
+    (!isPoster && !isHero ? decor.map((s, i) => `<span class="placed-sticker" style="${stickerStyle(s, i)}">${escapeHtml(s.emoji || s)}</span>`).join('') : '');
 
-  if (isPoster) {
+  if (isHero) {
+    const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+    const family = FONT_MAP[d.font] || 'Georgia, serif';
+    const fit = fitGreetingHeading(data().recipient, {
+      maxWidth: area.width / 100 * 1080, maxHeight: area.height / 100 * 1350,
+      startSize: 96, minSize: 40, floorSize: 18,
+      fontFamily: family, fontWeight: 800, lineHeightRatio: 1.12
+    });
+    const titleLinesHtml = fit.lines.map(line =>
+      `<div class="hero-title-line" style="font-size:${(line.fontSize / 1080 * 100).toFixed(3)}cqw;line-height:${fit.lineHeight / line.fontSize}">${escapeHtml(line.text)}</div>`
+    ).join('');
+    const msgFit = fitTextBlock($('#message').value, {
+      maxWidth: 1080 * 0.82, maxHeight: 1350 * (sender ? 0.16 : 0.19),
+      startSize: 35, minSize: 20, fontFamily: FONT_MAP[d.font] || 'sans-serif', fontWeight: 600, lineHeightRatio: 1.32
+    });
+    const msgHtml = msgFit.lines.map(t => escapeHtml(t)).join('<br>');
+    preview.innerHTML = `
+      ${date ? `<div class="hero-date" style="color:${d.textColor}">${escapeHtml(date)}</div>` : ''}
+      <div class="hero-title-box" style="top:${area.top}%;left:${area.left}%;width:${area.width}%;height:${area.height}%;color:${d.textColor}">${titleLinesHtml}</div>
+      ${state.photo ? photoMarkup('card') : ''}
+      <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${d.scrimColor || '0,0,0'},.88), rgba(${d.scrimColor || '0,0,0'},0) 55%)">
+        <div class="hero-footer-inner">
+          ${msgHtml ? `<p class="hero-message" style="color:${d.textColor}">${msgHtml}</p>` : ''}
+          ${sender ? `<div class="hero-sender" style="color:${d.accentColor || d.textColor}">— ${escapeHtml(sender)}</div>` : ''}
+        </div>
+      </div>
+      ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
+      <div class="card-watermark">MADE WITH WISHCRAFT</div>
+    `;
+  } else if (isPoster) {
     // Use the synced, user-selected festival (cardTitleText() reads state.fields.festival)
   // rather than the template's own fixed `festival` field, so a template shared across
   // more than one festival (e.g. the Independence Day poster also used for Republic Day)
@@ -833,7 +869,9 @@ async function makeImage() {
   c.height = dims[1];
   const x = c.getContext('2d'), d = design(), isPoster = !state.usingCustom && d.styleType === 'poster';
 
-  if (isPoster) {
+  if (!state.usingCustom && d.heroLayout) {
+    await paintHeroCard(x, d, c.width, c.height);
+  } else if (isPoster) {
     await paintPosterCanvas(x, d, c.width, c.height);
   } else {
     await paintBackground(x, d, c.width, c.height);
@@ -1141,6 +1179,209 @@ function paintPhoto(x, img, px, py, size) {
   roundedPath(x, px, py, size, size, radiusNumber(p.shape, size));
   x.stroke();
   x.setLineDash([]);
+}
+
+let _fitCtx = null;
+function getFitContext() {
+  if (!_fitCtx) _fitCtx = document.createElement('canvas').getContext('2d');
+  return _fitCtx;
+}
+
+function measureTextWidth(text, fontWeight, fontSizePx, fontFamily) {
+  const ctx = getFitContext();
+  ctx.font = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
+  return ctx.measureText(text).width;
+}
+
+// Fits "Happy Birthday, {name}!" into a logical-unit box (same numeric space is
+// reused as 1080-wide canvas px for export and as cqw-of-container for the DOM
+// preview) so both surfaces compute an identical result from identical inputs.
+function fitGreetingHeading(name, opts) {
+  const {
+    maxWidth, maxHeight, startSize = 96, minSize = 34, floorSize = 14,
+    fontFamily = 'Georgia, serif', fontWeight = 800, lineHeightRatio = 1.15
+  } = opts;
+  const prefix = 'Happy Birthday,';
+  const safeName = String(name || 'Friend').trim() || 'Friend';
+  const nameLine = `${safeName}!`;
+  const full = `${prefix} ${nameLine}`;
+
+  const fitsBox = (lines, sizes) => {
+    const lineH = Math.max(...sizes) * lineHeightRatio;
+    if (lines.length * lineH > maxHeight) return false;
+    return lines.every((l, i) => measureTextWidth(l, fontWeight, sizes[i], fontFamily) <= maxWidth);
+  };
+
+  // Only accept a single-line fit while it stays reasonably large — a technically-fitting
+  // but tiny single line (long name squeezed edge-to-edge) is worse than a well-sized 2-line wrap.
+  const singleLineFloor = Math.max(minSize, startSize * 0.62);
+  for (let size = startSize; size >= singleLineFloor; size -= 2) {
+    if (fitsBox([full], [size])) return { lines: [{ text: full, fontSize: size }], lineHeight: size * lineHeightRatio };
+  }
+
+  for (let size = startSize; size >= minSize; size -= 2) {
+    if (fitsBox([prefix, nameLine], [size, size])) {
+      return { lines: [{ text: prefix, fontSize: size }, { text: nameLine, fontSize: size }], lineHeight: size * lineHeightRatio };
+    }
+  }
+
+  const words = nameLine.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    const wrapped = [];
+    let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if (!cur || measureTextWidth(test, fontWeight, minSize, fontFamily) <= maxWidth) cur = test;
+      else { wrapped.push(cur); cur = w; }
+    });
+    if (cur) wrapped.push(cur);
+    const lines = [prefix, ...wrapped];
+    if (fitsBox(lines, lines.map(() => minSize))) {
+      return { lines: lines.map(t => ({ text: t, fontSize: minSize })), lineHeight: minSize * lineHeightRatio };
+    }
+    let size = minSize;
+    while (size > floorSize && !fitsBox(lines, lines.map(() => size))) size -= 1;
+    size = Math.max(size, floorSize);
+    return { lines: lines.map(t => ({ text: t, fontSize: size })), lineHeight: size * lineHeightRatio, compact: true };
+  }
+
+  // Single unbroken name still too wide at minSize: shrink that line alone rather than clip it.
+  let nameSize = minSize;
+  while (nameSize > floorSize && measureTextWidth(nameLine, fontWeight, nameSize, fontFamily) > maxWidth) nameSize -= 1;
+  nameSize = Math.max(nameSize, floorSize);
+  return {
+    lines: [{ text: prefix, fontSize: minSize }, { text: nameLine, fontSize: nameSize }],
+    lineHeight: Math.max(minSize, nameSize) * lineHeightRatio,
+    compact: nameSize < minSize
+  };
+}
+
+// Shrink-to-fit word-wrapped paragraph, used for the hero footer message.
+function fitTextBlock(text, opts) {
+  const {
+    maxWidth, maxHeight, startSize = 30, minSize = 16,
+    fontFamily = 'sans-serif', fontWeight = 600, lineHeightRatio = 1.3
+  } = opts;
+  const raw = String(text || '').trim();
+  if (!raw) return { lines: [], fontSize: startSize, lineHeight: startSize * lineHeightRatio };
+
+  const wrapAt = size => {
+    const out = [];
+    raw.split('\n').forEach(p => {
+      if (!p.trim()) { out.push(''); return; }
+      let cur = '';
+      p.split(/\s+/).forEach(word => {
+        const test = cur ? cur + ' ' + word : word;
+        if (cur && measureTextWidth(test, fontWeight, size, fontFamily) > maxWidth) { out.push(cur); cur = word; }
+        else cur = test;
+      });
+      if (cur) out.push(cur);
+    });
+    return out;
+  };
+
+  let size = startSize, lines = wrapAt(size);
+  while (size > minSize && lines.length * size * lineHeightRatio > maxHeight) {
+    size -= 1;
+    lines = wrapAt(size);
+  }
+  return { lines, fontSize: size, lineHeight: size * lineHeightRatio };
+}
+
+async function paintHeroCard(x, d, w, h) {
+  const img = d.backgroundImage ? await loadImg(d.backgroundImage) : null;
+  if (img) drawCoverImage(x, img, 0, 0, w, h);
+  else { x.fillStyle = '#12100f'; x.fillRect(0, 0, w, h); }
+
+  const family = FONT_MAP[d.font] || 'Georgia, serif';
+  const date = cardDateText();
+  if (date) {
+    x.save();
+    x.fillStyle = d.textColor || '#ffffff';
+    x.globalAlpha = .85;
+    x.textAlign = 'right';
+    x.textBaseline = 'top';
+    x.font = `700 ${Math.round(h * 0.0185)}px Arial`;
+    x.fillText(date, w * 0.94, h * 0.028);
+    x.restore();
+  }
+
+  const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
+  const boxX = w * area.left / 100, boxY = h * area.top / 100, boxW = w * area.width / 100, boxH = h * area.height / 100;
+  const name = data().recipient;
+  const fit = fitGreetingHeading(name, {
+    maxWidth: boxW, maxHeight: boxH,
+    startSize: Math.round(h * 0.088), minSize: Math.round(h * 0.036), floorSize: Math.round(h * 0.017),
+    fontFamily: family, fontWeight: 800, lineHeightRatio: 1.12
+  });
+  x.textAlign = 'center';
+  x.textBaseline = 'top';
+  x.fillStyle = d.textColor || '#ffffff';
+  let ty = boxY + Math.max(0, (boxH - fit.lines.length * fit.lineHeight) / 2);
+  fit.lines.forEach(line => {
+    x.font = `800 ${line.fontSize}px ${family}`;
+    x.fillText(line.text, boxX + boxW / 2, ty);
+    ty += fit.lineHeight;
+  });
+
+  const scrimTop = h * 0.66;
+  const grad = x.createLinearGradient(0, h, 0, scrimTop);
+  grad.addColorStop(0, `rgba(${d.scrimColor || '0,0,0'},0.88)`);
+  grad.addColorStop(1, `rgba(${d.scrimColor || '0,0,0'},0)`);
+  x.fillStyle = grad;
+  x.fillRect(0, scrimTop, w, h - scrimTop);
+
+  if (state.photo) {
+    const pimg = await loadImg(state.photo);
+    if (pimg) {
+      const defaults = d.photoFrameDefaults || {};
+      const frameSize = defaults.frameSize ?? state.photoCfg.frameSize;
+      const frameY = defaults.frameY ?? state.photoCfg.frameY;
+      const size = Math.min(w, h) * frameSize / 100;
+      const px = (w - size) / 2, py = h * frameY / 100;
+      paintPhoto(x, pimg, px, py, size);
+    }
+  }
+
+  const sender = data().sender;
+  const credit = footerCredit();
+  const msgBottom = h * (sender ? 0.865 : 0.90);
+  const msgFit = fitTextBlock($('#message').value, {
+    maxWidth: w * 0.82, maxHeight: h * (sender ? 0.16 : 0.19),
+    startSize: Math.round(h * 0.026), minSize: Math.round(h * 0.015),
+    fontFamily: FONT_MAP[d.font] || 'sans-serif', fontWeight: 600, lineHeightRatio: 1.32
+  });
+  x.textAlign = 'center';
+  x.textBaseline = 'alphabetic';
+  x.fillStyle = d.textColor || '#ffffff';
+  let by = msgBottom;
+  if (sender) {
+    x.font = `700 ${Math.round(h * 0.023)}px ${FONT_MAP[d.font] || 'sans-serif'}`;
+    x.fillStyle = d.accentColor || d.textColor || '#ffffff';
+    x.fillText(`— ${sender}`, w / 2, by);
+    by -= h * 0.042;
+  }
+  x.fillStyle = d.textColor || '#ffffff';
+  for (let i = msgFit.lines.length - 1; i >= 0; i--) {
+    x.font = `600 ${msgFit.fontSize}px ${FONT_MAP[d.font] || 'sans-serif'}`;
+    x.fillText(msgFit.lines[i], w / 2, by);
+    by -= msgFit.lineHeight;
+  }
+
+  if (credit) {
+    x.font = '700 20px Arial';
+    x.globalAlpha = .72;
+    x.textAlign = 'center';
+    x.fillStyle = d.textColor || '#ffffff';
+    x.fillText(credit, w / 2, h * .955);
+    x.globalAlpha = 1;
+  }
+  x.font = '700 18px Arial';
+  x.globalAlpha = .65;
+  x.textAlign = 'center';
+  x.fillStyle = d.textColor || '#ffffff';
+  x.fillText('MADE WITH WISHCRAFT', w / 2, h * .975);
+  x.globalAlpha = 1;
 }
 
 async function paintBackground(x, d, w, h) {
