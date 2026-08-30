@@ -488,7 +488,7 @@ function renderCard() {
         ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
 
         ${!state.photo && d.image ? `
-          <div class="card-art-section" style="border-color:${d.border || '#fbbf24'}">
+          <div class="card-art-section${d.compactArt ? ' compact-art' : ''}" style="border-color:${d.border || '#fbbf24'}${d.compactArt ? ';height:40px' : ''}">
             <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
           </div>
         ` : ''}
@@ -859,7 +859,7 @@ async function makeImage() {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
-        const artH = c.height * 0.23;
+        const artH = c.height * (d.compactArt ? 0.08 : 0.23);
         const px = (c.width - artW) / 2;
         const py = c.height * 0.11;
         x.save();

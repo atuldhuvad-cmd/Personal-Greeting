@@ -715,6 +715,56 @@ const PRESET_TEMPLATES = [
     festivals: ['New Year']
   },
 
+  // ==================== THANKSGIVING ====================
+  {
+    id: 'thanksgiving-poster',
+    name: 'Thanksgiving Harvest Poster',
+    category: 'Thanksgiving · Poster Infographic',
+    festival: 'Thanksgiving',
+    styleType: 'poster',
+    badge: 'HARVEST OF GRATITUDE',
+    subtitle: 'Gratitude • Family • Togetherness',
+    tagline: 'May your table be full and your heart even fuller this Thanksgiving.',
+    image: 'assets/festival/thanksgiving.svg',
+    imageFocusY: 82,
+    background: 'linear-gradient(175deg, #7c2d12 0%, #9a3412 45%, #fffdfa 45.1%, #fffdfa 100%)',
+    headerBg: 'linear-gradient(135deg, #7c2d12, #c2410c)',
+    bodyBg: '#fffdfa',
+    colors: ['#7c2d12', '#f2c14e'],
+    textColor: '#5c2e0e',
+    headerTextColor: '#fef3c7',
+    accentColor: '#c2410c',
+    font: 'serif',
+    stickers: ['🍂', '🍁', '🌽', '🥧'],
+    shape: 'soft',
+    border: '#c2410c',
+    panel: true,
+    festivals: ['Thanksgiving']
+  },
+  {
+    id: 'thanksgiving-minimal',
+    name: 'Thanksgiving Warm Gratitude',
+    category: 'Thanksgiving · Minimal Harvest Art',
+    festival: 'Thanksgiving',
+    styleType: 'minimal',
+    subtitle: 'Gratitude • Family • Togetherness',
+    tagline: 'Grateful for you, today and always.',
+    image: 'assets/festival/thanksgiving.svg',
+    imageFocusY: 82,
+    compactArt: true,
+    background: 'linear-gradient(160deg, #fdf6e8 0%, #f3dfb8 100%)',
+    colors: ['#fdf6e8', '#c2410c'],
+    textColor: '#5c2e0e',
+    headerTextColor: '#fef3c7',
+    accentColor: '#c2410c',
+    font: 'serif',
+    stickers: ['🍂', '🌾', '🍁', '🧡'],
+    shape: 'soft',
+    border: '#d97706',
+    panel: true,
+    festivals: ['Thanksgiving']
+  },
+
   // ==================== GENERAL THEMES ====================
   {
     id: 'festive',

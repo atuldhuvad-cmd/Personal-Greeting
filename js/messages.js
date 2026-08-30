@@ -297,6 +297,38 @@ const FESTIVAL_TONE_MESSAGES = {
       'Thank you for your friendship and support. Wishing you a profoundly meaningful, joyful, and blessed New Year.',
       'May the dawn of this New Year bring divine grace, contentment, and abundant happiness to your life.'
     ]
+  },
+  'Thanksgiving': {
+    joyful: [
+      'Happy Thanksgiving! Wishing you a table full of good food and a heart full of gratitude.',
+      'Let the celebrations begin! May your Thanksgiving be filled with laughter, love, and delicious moments.',
+      'Sending bright and joyful Thanksgiving wishes your way!'
+    ],
+    warm: [
+      'Wishing you a warm and cozy Thanksgiving, surrounded by the people who mean the most to you.',
+      'Sending heartfelt Thanksgiving wishes, filled with warmth and gratitude.',
+      'May this Thanksgiving bring you comfort, gentle joy, and cherished time with loved ones.'
+    ],
+    candid: [
+      'Happy Thanksgiving! Hope you enjoy great food, good company, and a well-earned break.',
+      'Wishing you a wonderful Thanksgiving — eat well, laugh often, and enjoy every bit of it.',
+      'Happy Turkey Day! Hope your table is full and your day is even better.'
+    ],
+    funny: [
+      'Happy Thanksgiving! May your stretchy pants and your appetite be perfectly matched today.',
+      'Official notice: it is officially okay to have seconds (and thirds) today. Happy Thanksgiving!',
+      'Wishing you a Thanksgiving with zero kitchen disasters and unlimited pie. Good luck!'
+    ],
+    formal: [
+      'Wishing you and your family a joyful and gracious Thanksgiving filled with warmth and gratitude.',
+      'Please accept our warmest Thanksgiving greetings. May this season bring you peace and prosperity.',
+      'Heartfelt Thanksgiving wishes to you and your family — may gratitude and grace fill your home.'
+    ],
+    heartfelt: [
+      'Grateful for you today and always. Wishing you a Thanksgiving filled with love and meaning.',
+      'This Thanksgiving, I am especially thankful for you. Wishing you warmth, love, and togetherness.',
+      'May this Thanksgiving remind you how deeply you are loved and appreciated.'
+    ]
   }
 };
 
