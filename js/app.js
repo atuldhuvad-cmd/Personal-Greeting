@@ -1,4 +1,26 @@
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)], KEYS = { settings: 'wishcraft_settings_v2', cards: 'wishcraft_cards_v2', draft: 'wishcraft_working_v2' };
+// Message/tagline/signature text is always drawn in a readable sans-serif on
+// canvas exports, matching the DOM's forced font-family in fixes.css --
+// never the card's decorative font (e.g. font:'display' = Impact/Arial
+// Black), which is only appropriate for a short bold title. Used for both
+// measuring (so wrapping matches what's actually drawn) and drawing.
+const BODY_FONT = 'Inter, Arial, sans-serif';
+
+// Whether a hex color reads as "light" (needs a dark backdrop to stay
+// readable). Used to pick a dark vs pale text-panel background for
+// panel:true templates -- driven by the template's own textColor (the
+// actual signal for what backdrop it needs), not by pattern-matching the
+// background gradient string, which produces false positives (e.g.
+// bestuvaras-royal's background contains '#78...' so a background-substring
+// heuristic flags it as "dark", but its text is dark-on-purpose for a pale
+// panel -- switching that panel dark too would make the text unreadable).
+function isLightColor(hex) {
+  const h = String(hex || '').replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  if (full.length !== 6 || /[^0-9a-fA-F]/.test(full)) return false;
+  const r = parseInt(full.slice(0, 2), 16), g = parseInt(full.slice(2, 4), 16), b = parseInt(full.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
+}
 const state = {
   occasion: 'birthday',
   tone: 'joyful',
@@ -9,8 +31,8 @@ const state = {
   photo: null,
   photoCfg: { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true },
   layout: { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125 },
-  cardDate: todayValue(),
-  showCardDate: true,
+  cardDate: '',
+  showCardDate: false,
   custom: { aspect: 'portrait', color1: '#3b0764', color2: '#ec4899', backgroundType: 'linear', pattern: 'none', backgroundImage: null, font: 'sans', textColor: '#ffffff', fontSize: 36, alignment: 'center', lineHeight: 1.4, textGlow: false, stickers: [] },
   usingCustom: false,
   selectedSticker: null,
@@ -54,7 +76,7 @@ function init() {
 function setupCreatePhotoPanel() {
   const tools = $('.photo-tools'), panel = document.createElement('article');
   panel.className = 'panel';
-  panel.innerHTML = '<div class="step"><span>4</span><div><h3>Upload or take photo</h3><p>Adjust the photo here and the same placement is used in the card.</p></div></div>';
+  panel.innerHTML = '<div class="step"><span>4</span><div><h3>Choose a photo</h3><p>Adjust the photo here and the same placement is used in the card.</p></div></div>';
   if (!$('#photoLivePreview')) {
     $('#photoControls').insertAdjacentHTML('beforebegin', '<div id="photoLivePreview" class="photo-live-preview"><div class="photo-live-title">Live card photo placement</div><div class="photo-stage"><div id="photoStageFrame" class="photo-stage-frame empty-photo"><span>Photo preview appears here</span></div></div></div>');
   }
@@ -63,6 +85,9 @@ function setupCreatePhotoPanel() {
   }
   if (!$('#borderColorHint')) {
     $('#borderColor').closest('label').insertAdjacentHTML('beforeend', '<small id="borderColorHint" class="field-hint">Applies to Solid and Dashed. Gold metallic keeps a gold border.</small>');
+  }
+  if (!$('#removePhotoBtn')) {
+    $('#photoControls').insertAdjacentHTML('afterbegin', '<div class="two-col"><button id="resetPhotoPositionBtn" type="button" class="secondary compact-btn">Reset position/zoom</button><button id="removePhotoBtn" type="button" class="secondary compact-btn">Remove photo</button></div>');
   }
   const vertical = $('#panY').closest('label'), horizontal = $('#panX').closest('label'), zoom = $('#zoom').closest('label');
   zoom.after(vertical);
@@ -87,7 +112,7 @@ function setupDeveloperSettings() {
 
 function setupCardDate() {
   if ($('#cardDate')) return;
-  $('#dynamicFields').insertAdjacentHTML('afterend', '<div class="date-row"><label>Card date<input id="cardDate" type="date"></label><label class="check compact-check"><input id="showCardDate" type="checkbox" checked> Show date</label></div>');
+  $('#dynamicFields').insertAdjacentHTML('afterend', '<div class="date-row"><label>Card date<input id="cardDate" type="date"></label><label class="check compact-check"><input id="showCardDate" type="checkbox"> Show date</label></div>');
 }
 
 function load() {
@@ -111,8 +136,8 @@ function normalizeState() {
   state.photoCfg = { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true, ...state.photoCfg };
   state.layout = { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125, ...state.layout };
   state.settings = { sender: '', theme: 'dark', developerCredit: 'Developed by Dr.Atul Dhuvad', showDeveloperCredit: true, ...state.settings };
-  state.cardDate = validDateValue(state.cardDate) || todayValue();
-  state.showCardDate = state.showCardDate !== false;
+  state.cardDate = validDateValue(state.cardDate);
+  state.showCardDate = state.showCardDate === true;
   if (!state.fields) state.fields = {};
   if (state.occasion === 'festival' && !state.fields.festival) {
     state.fields.festival = 'Diwali';
@@ -138,7 +163,7 @@ function bind() {
   $('#generateMessage').onclick = () => { state.messageIndex++; generate(); };
   $('#message').oninput = saveWorking;
   $('#sender').oninput = saveWorking;
-  $('#cardDate').oninput = e => { state.cardDate = validDateValue(e.target.value) || todayValue(); renderCard(); saveWorking(); };
+  $('#cardDate').oninput = e => { state.cardDate = validDateValue(e.target.value); renderCard(); saveWorking(); };
   $('#showCardDate').onchange = e => { state.showCardDate = e.target.checked; renderCard(); saveWorking(); };
   $('#previewTemplate').onclick = openPreview;
   $('#openStudio').onclick = () => openModal('studioModal');
@@ -250,6 +275,11 @@ function renderOccasions() {
   $('#occasionGrid').innerHTML = `<label class="occasion-select">Choose an occasion<select id="occasionSelect">${OCCASIONS.map(o => `<option value="${o.id}" ${o.id === state.occasion ? 'selected' : ''}>${o.icon} ${o.name}</option>`).join('')}</select><small>${selected.hint}</small></label>`;
   $('#occasionSelect').onchange = e => {
     const nextOccasion = e.target.value;
+    // Switching occasion is the closest thing this app has to "start a new
+    // card" -- it already clears the typed fields (recipient name, etc.), so
+    // a photo uploaded for the previous occasion must not silently carry
+    // into this one either (item 13).
+    clearPhoto();
     if (nextOccasion === 'festival') {
       state.fields = {};
       syncFestivalField('Diwali');
@@ -268,6 +298,7 @@ function renderOccasions() {
       renderFestivalFilter();
     }
     renderTemplates();
+    renderCard();
     saveWorking();
   };
 }
@@ -462,11 +493,19 @@ function renderCard() {
     const titleLinesHtml = fit.lines.map(line =>
       `<div class="hero-title-line" style="font-size:${(line.fontSize / 1080 * 100).toFixed(3)}cqw;line-height:${fit.lineHeight / line.fontSize}">${escapeHtml(line.text)}</div>`
     ).join('');
+    const scrim = d.scrimColor || '0,0,0';
+    // The title and sender sit directly on a photographic background, so each
+    // gets its own scrim -- flat/solid through where the text actually falls,
+    // fading out only past it -- instead of relying on the text-shadow alone,
+    // which isn't reliable contrast against a busy photo (item 1: title must
+    // read as a separate area, and the sender must never land on the cake).
+    const titleScrimHeight = Math.min(60, area.top + area.height + 8);
     preview.innerHTML = `
       ${date ? `<div class="hero-date" style="color:${d.textColor}">${escapeHtml(date)}</div>` : ''}
+      <div class="hero-title-scrim" style="height:${titleScrimHeight}%;background:linear-gradient(to bottom, rgba(${scrim},.6) 0%, rgba(${scrim},.6) 55%, rgba(${scrim},0) 100%)"></div>
       <div class="hero-title-box" style="top:${area.top}%;left:${area.left}%;width:${area.width}%;height:${area.height}%;color:${d.textColor}">${titleLinesHtml}</div>
       ${state.photo ? photoMarkup('card') : ''}
-      <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${d.scrimColor || '0,0,0'},.88), rgba(${d.scrimColor || '0,0,0'},0) 55%)">
+      <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${scrim},.92) 0%, rgba(${scrim},.92) 65%, rgba(${scrim},0) 100%)">
         <div class="hero-footer-inner">
           ${sender ? `<div class="hero-sender" style="color:${d.accentColor || d.textColor}">— ${escapeHtml(sender)}</div>` : ''}
         </div>
@@ -483,7 +522,13 @@ function renderCard() {
     const subtitle = d.subtitle || 'Celebrate Safe, Healthy & Happy';
     const tagline = d.tagline || 'Light up happiness, not pollution. Choose safety. Choose health.';
 
-    const posterPhotoClear = state.photo ? Math.max(12, Math.min(72, state.photoCfg.frameY + state.photoCfg.frameSize + 5)) : 0;
+    // The photo's own frame only needs to reserve clearance below it (via
+    // margin-top) when it's absolutely positioned at the top of poster-body
+    // (no festival art). When art is also showing, the photo renders as a
+    // small static "dual" frame right after the art -- already in normal
+    // flow, so it needs no extra clearance (item 15: art must stay visible,
+    // photo gets a separate frame alongside it, not replacing it).
+    const posterPhotoClear = (state.photo && !d.image) ? Math.max(12, Math.min(72, state.photoCfg.frameY + state.photoCfg.frameSize + 5)) : 0;
     preview.innerHTML = `
       ${pattern}
       <div class="poster-container">
@@ -493,13 +538,14 @@ function renderCard() {
         </header>
 
         <div class="poster-body" style="background:${d.bodyBg || '#ffffff'}; position:relative">
-          ${state.photo ? photoMarkup('card') : ''}
+          ${state.photo && !d.image ? photoMarkup('card') : ''}
           ${date ? `<div class="poster-date">${escapeHtml(date)}</div>` : ''}
 
-          ${!state.photo && d.image ? `
+          ${d.image ? `
             <div class="poster-art-section" style="border-color:${d.accentColor || '#ea580c'}44">
               <img src="${d.image}" alt="${escapeHtml(festivalName)}" class="poster-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
             </div>
+            ${state.photo ? photoMarkup('card', 'flow') : ''}
           ` : ''}
 
           <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px); margin-top:${posterPhotoClear}%">
@@ -532,14 +578,14 @@ function renderCard() {
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
-      ${d.badge ? `<div class="fit-badge card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
-      ${state.photo ? photoMarkup('card') : (d.image ? `
+      ${d.image ? `
         <div class="fit-art-section" style="border-color:${d.border || '#fbbf24'}">
           <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
         </div>
-      ` : '')}
+      ` : ''}
+      ${state.photo ? photoMarkup('card', d.image ? 'fit' : null) : ''}
 
-      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="padding-top:${cq(20 * fit.gapScale)}">
+      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="padding-top:${cq(20 * fit.gapScale)};${panelStyleOverride(d)}">
         <h3 style="font-size:${cq(fit.titleSize)};line-height:1.15;margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${cq(fit.msgSize)};line-height:1.25">${escapeHtml($('#message').value)}</p>
         ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
@@ -550,25 +596,54 @@ function renderCard() {
     `;
   } else {
     const copyTop = copyTopPct();
+    // .card-copy centers its content (title+message+signature) within its
+    // top/bottom box via justify-content:center -- for titleAbovePhoto
+    // templates the photo sits BELOW that box (not pushing it down like the
+    // normal photo-on-top layout does), so the box's bottom edge must stop
+    // above the photo, or a long enough message centers low enough to run
+    // into it. Otherwise keep the normal bottom-of-card margin.
+    const copyBottom = (state.photo && d.titleAbovePhoto)
+      ? Math.max(28, 100 - state.photoCfg.frameY + 3) + '%'
+      : (credit ? '12%' : '9%');
+    // Also switch off center-alignment for that same case: if content is
+    // ever still taller than the box, flex-start means the TITLE (first
+    // child, at the top) is guaranteed visible -- centering would clip
+    // whichever end overflows, which is worse when that end is the heading.
+    const titleAbove = state.photo && d.titleAbovePhoto;
+    const copyJustify = titleAbove ? 'justify-content:flex-start;' : '';
+    // The titleAbovePhoto box is necessarily shorter than the normal
+    // photo-pushes-title-down layout (it has to leave room for the photo
+    // below it, not just above), so text sized for that larger box can
+    // overflow here -- trim it down a bit for this case specifically. Sized
+    // in cqw (proportional to the card's own rendered width, which is a
+    // fixed 4:5 aspect ratio) rather than px: a fixed px size is tuned for
+    // one card size, but the same text takes up relatively MORE of a
+    // *smaller* card (the card shrinks, the px text doesn't), so a size
+    // that fits at 375px-wide can still overflow at 320px-wide. cqw scales
+    // with the card itself, so the fit stays the same at every viewport.
+    const cq = px => (px / 375 * 100).toFixed(2) + 'cqw';
+    const titleUnit = titleAbove ? cq(Math.min(l.titleSize, 24)) : `${l.titleSize}px`;
+    const bodyUnit = titleAbove ? cq(Math.min(l.bodySize, 15)) : `${l.bodySize}px`;
+    const sigUnit = titleAbove ? cq(Math.min(l.bodySize + 2, 16)) : `${Math.max(l.bodySize + 2, 18)}px`;
     preview.innerHTML = `
       ${pattern}
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
-      ${state.photo ? photoMarkup('card') : ''}
+      ${state.photo && !d.image ? photoMarkup('card') : ''}
 
-      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image && !state.photo ? '6%' : copyTop + '%'}; bottom:${credit ? '12%' : '9%'}">
-        ${d.badge ? `<div class="card-top-badge" style="background:${d.accentColor || '#f59e0b'}; color:#ffffff">✨ ${escapeHtml(d.badge)} ✨</div>` : ''}
+      <section class="card-copy ${d.panel ? 'text-panel' : ''}" style="top:${d.image ? '6%' : copyTop + '%'}; bottom:${copyBottom};${copyJustify}${panelStyleOverride(d)}">
 
-        ${!state.photo && d.image ? `
+        ${d.image ? `
           <div class="card-art-section${d.compactArt ? ' compact-art' : ''}" style="border-color:${d.border || '#fbbf24'}${d.compactArt ? ';height:40px' : ''}">
             <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
           </div>
+          ${state.photo ? photoMarkup('card', 'flow') : ''}
         ` : ''}
 
-        <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
-        <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
+        <h3 style="font-size:${titleUnit}${titleAbove ? ';margin-bottom:8px' : ''}">${escapeHtml(cardTitle())}</h3>
+        <p style="font-size:${bodyUnit};line-height:${titleAbove ? 1.2 : l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
         ${d.tagline ? `<div class="card-tagline-text"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
-        ${sender ? `<div class="card-signature" style="font-size:${Math.max(l.bodySize + 2, 18)}px">— ${escapeHtml(sender)}</div>` : ''}
+        ${sender ? `<div class="card-signature" style="font-size:${sigUnit}${titleAbove ? ';margin-top:8px' : ''}">— ${escapeHtml(sender)}</div>` : ''}
       </section>
       ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
       <div class="card-watermark">MADE WITH WISHCRAFT</div>
@@ -584,17 +659,26 @@ function openPreview() {
   openModal('previewModal');
 }
 
-function photoMarkup(mode) {
+// dual: when the design also has festival artwork (d.image) showing, the
+// user's photo must be a SEPARATE frame alongside it, not replace it (item
+// 15) -- 'flow' places a small normal-flow frame (poster/default branches,
+// where the art sits in the page flow and a static element after it just
+// stacks below with no overlap risk); 'fit' places a small frame in a fixed
+// corner position over the isFit layout's fixed-zone artwork, since that
+// layout has no flow container to place a second block into.
+function photoMarkup(mode, dual) {
   if (!state.photo) return '';
   const p = state.photoCfg,
     posX = focusPct(p.panX),
     posY = focusPct(p.panY),
     borderColor = p.borderStyle === 'gold' ? '#d4af37' : p.borderColor,
     frameStyle = `border-radius:${radius(p.shape)};border:${p.borderWidth}px ${p.borderStyle === 'dashed' ? 'dashed' : 'solid'} ${borderColor};opacity:${p.opacity / 100};box-shadow:${p.shadow ? '0 10px 28px #0007' : 'none'}`,
-    img = `<img src="${state.photo}" alt="" style="object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${p.zoom / 100})">`;
+    img = `<img src="${state.photo}" alt="" style="object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${p.zoom / 100})">`,
+    posStyle = dual ? '' : `width:${p.frameSize}%;top:${p.frameY}%`,
+    dualClass = dual === 'flow' ? ' dual-frame-flow' : dual === 'fit' ? ' dual-frame-fit' : '';
   return mode === 'card' ?
-    `<div class="card-photo-frame" style="${frameStyle};width:${p.frameSize}%;top:${p.frameY}%">${img}</div>` :
-    `<div class="photo-stage-frame" style="${frameStyle};width:${p.frameSize}%;top:${p.frameY}%">${img}</div>`;
+    `<div class="card-photo-frame${dualClass}" style="${frameStyle};${posStyle}">${img}</div>` :
+    `<div class="photo-stage-frame${dualClass}" style="${frameStyle};${posStyle}">${img}</div>`;
 }
 
 // Patches every photo frame currently in the DOM (the upload-step stage
@@ -658,6 +742,19 @@ function updatePhotoPreview() {
   });
 }
 
+// Resets photo + photoCfg to their defaults and hides the controls panel --
+// used both when the user explicitly removes the photo and when starting a
+// new card (occasion switch) so a photo never silently carries over (item 13).
+function clearPhoto() {
+  state.photo = null;
+  state.photoCfg = { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true };
+  const input = $('#photoInput');
+  if (input) input.value = '';
+  const controls = $('#photoControls');
+  if (controls) controls.classList.add('hidden');
+  updatePhotoPreview();
+}
+
 function bindPhoto() {
   $('#photoInput').onchange = e => readImage(e.target.files[0], url => {
     state.photo = url;
@@ -666,6 +763,19 @@ function bindPhoto() {
     renderCard();
     saveWorking();
   });
+  $('#removePhotoBtn').onclick = () => {
+    clearPhoto();
+    renderCard();
+    saveWorking();
+    toast('Photo removed');
+  };
+  $('#resetPhotoPositionBtn').onclick = () => {
+    Object.assign(state.photoCfg, { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8 });
+    updatePhotoPreview();
+    renderCard();
+    saveWorking();
+    toast('Photo position and zoom reset');
+  };
   ['zoom', 'panX', 'panY', 'frameSize', 'frameY', 'borderWidth', 'photoOpacity'].forEach(id => $('#' + id).oninput = e => {
     const key = id === 'photoOpacity' ? 'opacity' : id;
     state.photoCfg[key] = Number(e.target.value);
@@ -962,15 +1072,13 @@ async function makeImage() {
       x.fillText(date, c.width / 2, c.height * .06);
       x.globalAlpha = 1;
     }
-    if (state.photo) {
-      const img = await loadImg(state.photo);
-      if (img) {
-        const size = Math.min(c.width, c.height) * state.photoCfg.frameSize / 100,
-          px = (c.width - size) / 2,
-          py = c.height * state.photoCfg.frameY / 100;
-        paintPhoto(x, img, px, py, size);
-      }
-    } else if (d.image) {
+    // Festival artwork always draws when present; the user's photo (if any)
+    // gets its own separate frame instead of replacing it (item 15) --
+    // corner-inset over the art for isFit's fixed-zone layout (matching
+    // .dual-frame-fit), or a small frame right below the art for the
+    // default/flow layout (matching .dual-frame-flow). With no artwork, the
+    // photo keeps its normal full-size, user-positioned frame.
+    if (d.image) {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
@@ -986,6 +1094,27 @@ async function makeImage() {
         x.lineWidth = 6;
         roundedPath(x, px, py, artW, artH, 24);
         x.stroke();
+
+        if (state.photo) {
+          const pimg = await loadImg(state.photo);
+          if (pimg) {
+            if (isFit) {
+              const size = c.width * 0.20, ppx = c.width * 0.91 - size, ppy = c.height * 0.24;
+              paintPhoto(x, pimg, ppx, ppy, size);
+            } else {
+              const size = c.width * 0.26, ppx = (c.width - size) / 2, ppy = py + artH + c.height * 0.02;
+              paintPhoto(x, pimg, ppx, ppy, size);
+            }
+          }
+        }
+      }
+    } else if (state.photo) {
+      const img = await loadImg(state.photo);
+      if (img) {
+        const size = Math.min(c.width, c.height) * state.photoCfg.frameSize / 100,
+          px = (c.width - size) / 2,
+          py = c.height * state.photoCfg.frameY / 100;
+        paintPhoto(x, img, px, py, size);
       }
     }
     paintDecor(x, d, c.width, c.height);
@@ -1068,14 +1197,10 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 30;
   }
 
-  // Photo or Traditional Artwork
-  if (state.photo) {
-    const img = await loadImg(state.photo);
-    const photoSize = Math.min(w, h) * (state.photoCfg.frameSize / 100) * 1.1;
-    const px = (w - photoSize) / 2;
-    paintPhoto(x, img, px, currentY, photoSize);
-    currentY += photoSize + 25;
-  } else if (d.image) {
+  // Traditional artwork always draws when present; the user's photo (if
+  // any) gets its own separate, smaller frame right after it instead of
+  // replacing it (item 15).
+  if (d.image) {
     try {
       const img = await loadImg(d.image);
       const artW = w * 0.88;
@@ -1091,9 +1216,23 @@ async function paintPosterCanvas(x, d, w, h) {
       roundedPath(x, px, currentY, artW, artH, 20);
       x.stroke();
       currentY += artH + 25;
+      if (state.photo) {
+        const pimg = await loadImg(state.photo);
+        if (pimg) {
+          const photoSize = w * 0.26, ppx = (w - photoSize) / 2;
+          paintPhoto(x, pimg, ppx, currentY, photoSize);
+          currentY += photoSize + 25;
+        }
+      }
     } catch(e) {
       currentY += 15;
     }
+  } else if (state.photo) {
+    const img = await loadImg(state.photo);
+    const photoSize = Math.min(w, h) * (state.photoCfg.frameSize / 100) * 1.1;
+    const px = (w - photoSize) / 2;
+    paintPhoto(x, img, px, currentY, photoSize);
+    currentY += photoSize + 25;
   } else {
     currentY += 15;
   }
@@ -1110,7 +1249,7 @@ async function paintPosterCanvas(x, d, w, h) {
   currentY = drawLines(x, titleLines, w / 2, currentY, l.titleSize * 1.6);
   currentY += 15;
 
-  x.font = `600 ${l.bodySize * 1.3}px ${FONT_MAP[d.font] || 'sans-serif'}`;
+  x.font = `600 ${l.bodySize * 1.3}px ${BODY_FONT}`;
   const bodyLines = measureLines(x, $('#message').value, w * 0.85);
   currentY = drawLines(x, bodyLines, w / 2, currentY, l.bodySize * 1.6);
 
@@ -1175,11 +1314,11 @@ function fitCardCopy(d, title, message, opts) {
   function measure(titleSize, msgSize, gapScale) {
     ctx.font = `800 ${titleSize}px ${family}`;
     const titleLines = measureLines(ctx, title, FIT_MAX_WIDTH);
-    ctx.font = `600 ${msgSize}px ${family}`;
+    ctx.font = `600 ${msgSize}px ${BODY_FONT}`;
     const msgLines = measureLines(ctx, message, FIT_MAX_WIDTH);
     let tagLines = [];
     if (tagline) {
-      ctx.font = `700 ${FIT_TAGLINE_SIZE}px ${family}`;
+      ctx.font = `700 ${FIT_TAGLINE_SIZE}px ${BODY_FONT}`;
       tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
     }
     const topPad = 20 * gapScale;
@@ -1224,7 +1363,7 @@ function paintFitCopy(x, d, w, h) {
 
   if (d.panel) {
     x.save();
-    const isDark = d.background && (d.background.includes('#0') || d.background.includes('#1') || d.background.includes('#2') || d.background.includes('#3') || d.background.includes('#4') || d.background.includes('#7f') || d.background.includes('#78') || d.background.includes('#45') || d.background.includes('#4a'));
+    const isDark = isLightColor(d.textColor);
     x.fillStyle = isDark ? 'rgba(15, 6, 6, 0.75)' : 'rgba(255, 253, 250, 0.92)';
     x.strokeStyle = d.border || (isDark ? '#fbbf24' : '#e2e8f0');
     x.lineWidth = 3;
@@ -1241,19 +1380,19 @@ function paintFitCopy(x, d, w, h) {
   y = drawLines(x, fit.titleLines, w / 2, y, fit.titleSize * 1.15);
   y += 14 * fit.gapScale;
 
-  x.font = `600 ${fit.msgSize}px ${family}`;
+  x.font = `600 ${fit.msgSize}px ${BODY_FONT}`;
   y = drawLines(x, fit.msgLines, w / 2, y, fit.msgSize * 1.25);
 
   if (d.tagline && fit.tagLines.length) {
     y += 20 * fit.gapScale;
-    x.font = `italic 700 ${FIT_TAGLINE_SIZE}px ${family}`;
+    x.font = `italic 700 ${FIT_TAGLINE_SIZE}px ${BODY_FONT}`;
     x.fillStyle = d.textColor || '#ffffff';
     y = drawLines(x, fit.tagLines, w / 2, y, FIT_TAGLINE_SIZE * 1.3);
   }
 
   if (sender) {
     y += 20 * fit.gapScale;
-    x.font = `700 ${FIT_SIG_SIZE}px ${family}`;
+    x.font = `700 ${FIT_SIG_SIZE}px ${BODY_FONT}`;
     x.fillStyle = d.accentColor || '#f59e0b';
     x.fillText(`— ${sender}`, w / 2, y);
   }
@@ -1264,9 +1403,13 @@ function paintCopy(x, d, w, h) {
     align = state.usingCustom ? state.custom.alignment : 'center',
     alignX = align === 'left' ? w * .1 : align === 'right' ? w * .9 : w / 2,
     max = w * .8,
-    hasArt = (d.image && !state.photo) || state.photo,
+    hasArt = ((d.image && !state.photo) || state.photo) && !d.titleAbovePhoto,
     top = hasArt ? h * 0.38 : h * copyTopPct() / 100,
-    bottom = h * .88,
+    // Matches the DOM's copyBottom in renderCard(): titleAbovePhoto's photo
+    // sits below the text block rather than pushing it down, so the block's
+    // bottom edge must stop above the photo instead of using the normal
+    // near-bottom-of-card margin (see renderCard()'s copyBottom comment).
+    bottom = (state.photo && d.titleAbovePhoto) ? h * Math.min(0.72, (state.photoCfg.frameY - 3) / 100) : h * .88,
     family = FONT_MAP[d.font] || 'sans-serif',
     scale = w / 360,
     l = state.layout;
@@ -1278,7 +1421,7 @@ function paintCopy(x, d, w, h) {
   for (let i = 0; i < 24; i++) {
     x.font = `800 ${titleSize}px ${family}`;
     const titleLines = measureLines(x, cardTitle(), max * 0.9);
-    x.font = `600 ${bodySize}px ${family}`;
+    x.font = `600 ${bodySize}px ${BODY_FONT}`;
     const bodyLines = measureLines(x, $('#message').value, max * 0.9);
     const total = titleLines.length * titleSize * 1.15 + bodyLines.length * bodySize * (l.lineHeight / 100) + (sender ? sigSize * 1.2 + 30 * scale : 0) + 20 * scale;
     if (total <= bottom - top || bodySize <= 18) {
@@ -1293,7 +1436,7 @@ function paintCopy(x, d, w, h) {
   let y = top + 20 * scale;
   if (d.panel) {
     x.save();
-    const isDark = d.background && (d.background.includes('#0') || d.background.includes('#1') || d.background.includes('#2') || d.background.includes('#3') || d.background.includes('#4') || d.background.includes('#7f') || d.background.includes('#78') || d.background.includes('#45') || d.background.includes('#4a'));
+    const isDark = isLightColor(d.textColor);
     x.fillStyle = isDark ? 'rgba(15, 6, 6, 0.75)' : 'rgba(255, 253, 250, 0.92)';
     x.strokeStyle = d.border || (isDark ? '#fbbf24' : '#e2e8f0');
     x.lineWidth = 3 * scale;
@@ -1314,13 +1457,13 @@ function paintCopy(x, d, w, h) {
   y += 14 * scale;
 
   // Draw Body Message
-  x.font = `600 ${bodySize}px ${family}`;
+  x.font = `600 ${bodySize}px ${BODY_FONT}`;
   y = drawLines(x, layout.bodyLines, alignX, y, bodySize * (l.lineHeight / 100));
 
   // Draw Sender Signature
   if (sender) {
     y += 20 * scale;
-    x.font = `700 ${sigSize}px ${family}`;
+    x.font = `700 ${sigSize}px ${BODY_FONT}`;
     x.fillStyle = d.accentColor || '#f59e0b';
     x.fillText(`— ${sender}`, alignX, y);
   }
@@ -1388,7 +1531,7 @@ function measureTextWidth(text, fontWeight, fontSizePx, fontFamily) {
   return ctx.measureText(text).width;
 }
 
-// Fits "Happy Birthday, {name}!" into a logical-unit box (same numeric space is
+// Fits "Happy Birthday, {name}" into a logical-unit box (same numeric space is
 // reused as 1080-wide canvas px for export and as cqw-of-container for the DOM
 // preview) so both surfaces compute an identical result from identical inputs.
 function fitGreetingHeading(name, opts) {
@@ -1398,7 +1541,7 @@ function fitGreetingHeading(name, opts) {
   } = opts;
   const prefix = 'Happy Birthday,';
   const safeName = String(name || 'Friend').trim() || 'Friend';
-  const nameLine = `${safeName}!`;
+  const nameLine = safeName;
   const full = `${prefix} ${nameLine}`;
 
   const fitsBox = (lines, sizes) => {
@@ -1491,6 +1634,19 @@ async function paintHeroCard(x, d, w, h) {
 
   const area = d.titleArea || { top: 4, left: 4, width: 92, height: 30 };
   const boxX = w * area.left / 100, boxY = h * area.top / 100, boxW = w * area.width / 100, boxH = h * area.height / 100;
+  const scrim = d.scrimColor || '0,0,0';
+
+  // Same flat-then-fade scrims as the DOM preview (renderCard()'s hero
+  // branch) behind the title and sender -- drawn before that text so it
+  // reads clearly against a busy photo instead of relying on shadow alone.
+  const titleScrimBottom = Math.min(h * 0.6, boxY + boxH + h * 0.08);
+  const tgrad = x.createLinearGradient(0, 0, 0, titleScrimBottom);
+  tgrad.addColorStop(0, `rgba(${scrim},0.6)`);
+  tgrad.addColorStop(0.55, `rgba(${scrim},0.6)`);
+  tgrad.addColorStop(1, `rgba(${scrim},0)`);
+  x.fillStyle = tgrad;
+  x.fillRect(0, 0, w, titleScrimBottom);
+
   const fit = fitHeroTitle(d, data().recipient);
   x.textAlign = 'center';
   x.textBaseline = 'top';
@@ -1502,10 +1658,11 @@ async function paintHeroCard(x, d, w, h) {
     ty += fit.lineHeight;
   });
 
-  const scrimTop = h * 0.78;
+  const scrimTop = h * 0.72;
   const grad = x.createLinearGradient(0, h, 0, scrimTop);
-  grad.addColorStop(0, `rgba(${d.scrimColor || '0,0,0'},0.88)`);
-  grad.addColorStop(1, `rgba(${d.scrimColor || '0,0,0'},0)`);
+  grad.addColorStop(0, `rgba(${scrim},0.92)`);
+  grad.addColorStop(0.65, `rgba(${scrim},0.92)`);
+  grad.addColorStop(1, `rgba(${scrim},0)`);
   x.fillStyle = grad;
   x.fillRect(0, scrimTop, w, h - scrimTop);
 
@@ -1526,7 +1683,7 @@ async function paintHeroCard(x, d, w, h) {
   x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
   if (sender) {
-    x.font = `700 ${Math.round(h * 0.023)}px ${family}`;
+    x.font = `700 ${Math.round(h * 0.023)}px ${BODY_FONT}`;
     x.fillStyle = d.accentColor || d.textColor || '#ffffff';
     x.fillText(`— ${sender}`, w / 2, h * 0.90);
   }
@@ -1595,12 +1752,12 @@ function occasionDecor() {
   if (state.occasion === 'festival') return festivalDecor(data().festival);
   return {
     birthday: ['🎂', '🎈', '🎉', '🎁'],
-    anniversary: ['💍', '💕', '🌸', '🥂'],
+    anniversary: ['💍', '💕', '🌸', '✨'],
     baby: ['👶', '🍼', '🌟', '💕'],
     congratulations: ['🎉', '🏆', '🌟', '🎈'],
     housewarming: ['🏡', '🌿', '✨', '💕'],
     graduation: ['🎓', '🏆', '🌟', '🎉'],
-    retirement: ['🌴', '🥂', '🌟', '💐'],
+    retirement: ['🌴', '🎊', '🌟', '💐'],
     getwell: ['💐', '💕', '🌿', '🌟'],
     thanks: ['💛', '🌸', '💕', '✨'],
     custom: ['✨', '🎉', '🌟', '💕']
@@ -1623,7 +1780,7 @@ function festivalDecor(name) {
     'Valentine\'s Day': ['❤️', '💕', '🌹', '✨'],
     'Christmas': ['🎄', '⭐', '🎁', '✨'],
     'Eid': ['🌙', '✨', '💐', '🤲'],
-    'New Year': ['🎆', '🥂', '🌟', '✨'],
+    'New Year': ['🎆', '🎉', '🌟', '✨'],
     'Thanksgiving': ['🍁', '🕯️', '💛', '✨']
   }[name] || ['🎆', '✨', '🌟', '🎉'];
 }
@@ -1672,23 +1829,50 @@ function cardTitleText() {
 function cardTitle() {
   const d = data(), name = subjectFor(state.occasion, d);
   const festivalName = festivalHeadline(d.festival) || 'Festival';
+
+  // Addressed to the baby (a baby name was given) vs addressed to the
+  // parents (only a parent name was given) need different wording, not the
+  // same "Welcome, {name}" template applied to whichever name is present.
+  if (state.occasion === 'baby') {
+    return d.baby ? `Welcome, ${d.baby}` : `Congratulations, ${d.parents || 'the Family'}`;
+  }
+  // Reason-aware headings (item 4): "Congratulations on {phrase}, {Name}"
+  // when a reason/degree was given, otherwise just "Congratulations, {Name}".
+  if (state.occasion === 'congratulations') {
+    const phrase = reasonHeadingPhrase(d.reason);
+    return phrase ? `Congratulations on ${phrase}, ${name}` : `Congratulations, ${name}`;
+  }
+  if (state.occasion === 'graduation') {
+    const phrase = reasonHeadingPhrase(d.reason) || 'Your Graduation';
+    return `Congratulations on ${phrase}, ${name}`;
+  }
+
   return {
-    birthday: `Happy Birthday, ${name}!`,
-    anniversary: `Happy Anniversary, ${name}!`,
-    baby: `Welcome, ${name}!`,
-    congratulations: `Congratulations, ${name}!`,
-    housewarming: `New Home Wishes, ${name}!`,
-    graduation: `Congratulations, ${name}!`,
-    retirement: `Happy Retirement, ${name}!`,
-    getwell: `Get Well Soon, ${name}!`,
-    festival: d.recipient ? `Happy ${festivalName}, ${name}!` : `Happy ${festivalName}!`,
-    thanks: `Thank You, ${name}!`,
-    custom: `${d.title || 'Special Wishes'}, ${name}!`
-  }[state.occasion] || `Best Wishes, ${name}!`;
+    birthday: `Happy Birthday, ${name}`,
+    anniversary: `Happy Anniversary, ${name}`,
+    housewarming: `Congratulations on Your New Home, ${name}`,
+    retirement: `Happy Retirement, ${name}`,
+    getwell: `Get Well Soon, ${name}`,
+    festival: d.recipient ? `Happy ${festivalName}, ${name}` : `Happy ${festivalName}`,
+    thanks: `Thank You, ${name}`,
+    custom: `${d.title || 'Special Wishes'}, ${name}`
+  }[state.occasion] || `Best Wishes, ${name}`;
+}
+
+// The default .text-panel CSS is a pale cream panel, correct for templates
+// with dark text. A panel:true template whose textColor is light (e.g. the
+// "royal" festival templates, meant to read against a dark card background)
+// needs a dark panel instead, or the text is unreadable against its own
+// backdrop (item 11: Royal Deepawali's pale panel + white text). Mirrors the
+// same isLightColor(d.textColor) check paintCopy()/paintFitCopy() use for
+// the PNG export, so preview and download match.
+function panelStyleOverride(d) {
+  if (!d.panel || !isLightColor(d.textColor)) return '';
+  return `background:rgba(15,6,6,.75);border-color:${d.border || '#fbbf24'}88`;
 }
 
 function copyTopPct() {
-  const d = design(), base = state.photo ? state.photoCfg.frameY + state.photoCfg.frameSize + 5 : d.panel ? 31 : 24;
+  const d = design(), base = (state.photo && !d.titleAbovePhoto) ? state.photoCfg.frameY + state.photoCfg.frameSize + 5 : d.panel ? 31 : 24;
   return Math.max(12, Math.min(72, base + state.layout.copyShift));
 }
 
@@ -1698,11 +1882,6 @@ function focusPct(value) {
 
 function footerCredit() {
   return state.settings.showDeveloperCredit ? String(state.settings.developerCredit || '').trim() : '';
-}
-
-function todayValue() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function validDateValue(v) {

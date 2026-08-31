@@ -621,7 +621,7 @@ const PRESET_TEMPLATES = [
     headerTextColor: '#ffffff',
     accentColor: '#fb7185',
     font: 'serif',
-    stickers: ['🌹', '💖', '✨', '🥂'],
+    stickers: ['🌹', '💖', '✨', '🌸'],
     shape: 'soft',
     border: '#f43f5e',
     panel: true,
@@ -717,7 +717,7 @@ const PRESET_TEMPLATES = [
     headerTextColor: '#fef08a',
     accentColor: '#eab308',
     font: 'sans',
-    stickers: ['🎆', '🥂', '🌟', '✨'],
+    stickers: ['🎆', '🎉', '🌟', '✨'],
     shape: 'soft',
     border: '#eab308',
     panel: true,
@@ -835,7 +835,7 @@ const PRESET_TEMPLATES = [
     colors: ['#071426', '#1e2950'],
     textColor: '#f7dfa0',
     font: 'serif',
-    stickers: ['💍', '✨', '👑', '🥂'],
+    stickers: ['💍', '✨', '👑', '🏆'],
     shape: 'square',
     border: '#d8aa54'
   },
@@ -850,7 +850,9 @@ const PRESET_TEMPLATES = [
     font: 'serif',
     stickers: ['🌸', '💕', '🌿', '🕊️'],
     shape: 'circle',
-    border: '#b87161'
+    border: '#b87161',
+    titleAbovePhoto: true,
+    photoFrameDefaults: { frameY: 79, frameSize: 11 }
   },
   {
     id: 'fun',
@@ -874,7 +876,7 @@ const PRESET_TEMPLATES = [
     colors: ['#210635', '#701a75'],
     textColor: '#f9a8d4',
     font: 'sans',
-    stickers: ['🌟', '🎆', '🥂', '💖'],
+    stickers: ['🌟', '🎆', '🎊', '💖'],
     shape: 'heavy',
     border: '#e879f9'
   }
@@ -890,6 +892,6 @@ const FONT_MAP = {
 
 const STICKERS = [
   '🎂', '🧁', '🕯️', '🎈', '🎉', '🥳', '💍', '💕', '🌸', '👶', '🍼', '🌟',
-  '🥂', '👑', '🏆', '🪔', '🪁', '🌈', '☀️', '💃', '🦚', '🪈', '🏹', '🐘',
+  '🎊', '👑', '🏆', '🪔', '🪁', '🌈', '☀️', '💃', '🦚', '🪈', '🏹', '🐘',
   '🌾', '🌺', '🌙', '🎄', '⭐', '❄️', '🌹', '💖', '🇮🇳', '🕊️'
 ];
