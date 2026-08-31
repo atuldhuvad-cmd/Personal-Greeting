@@ -593,6 +593,37 @@ function photoMarkup(mode) {
     `<div class="photo-stage-frame" style="${frameStyle};width:${p.frameSize}%;top:${p.frameY}%">${img}</div>`;
 }
 
+function bindPhotoDrag(frame) {
+  if (!frame || !state.photo) return;
+  frame.style.touchAction = 'none';
+  frame.style.cursor = 'grab';
+  frame.onpointerdown = e => {
+    e.preventDefault();
+    frame.setPointerCapture(e.pointerId);
+    frame.style.cursor = 'grabbing';
+    const rect = frame.getBoundingClientRect(), startX = e.clientX, startY = e.clientY,
+      startPanX = state.photoCfg.panX, startPanY = state.photoCfg.panY;
+    const img = frame.querySelector('img');
+    frame.onpointermove = ev => {
+      const dx = (ev.clientX - startX) / rect.width * 200, dy = (ev.clientY - startY) / rect.height * 200;
+      state.photoCfg.panX = Math.max(-100, Math.min(100, startPanX - dx));
+      state.photoCfg.panY = Math.max(-100, Math.min(100, startPanY - dy));
+      const pos = `${focusPct(state.photoCfg.panX)}% ${focusPct(state.photoCfg.panY)}%`;
+      if (img) {
+        img.style.objectPosition = pos;
+        img.style.transformOrigin = pos;
+      }
+      renderCard();
+    };
+    frame.onpointerup = () => {
+      frame.onpointermove = null;
+      updatePhotoPreview();
+      renderCard();
+      saveWorking();
+    };
+  };
+}
+
 function updatePhotoPreview() {
   const live = $('#photoLivePreview'), stage = $('#photoLivePreview .photo-stage-frame');
   if (!live || !stage) return;
@@ -602,6 +633,7 @@ function updatePhotoPreview() {
     stage.innerHTML = '<span>Photo preview appears here</span>';
   } else {
     stage.outerHTML = photoMarkup('stage');
+    bindPhotoDrag($('#photoLivePreview .photo-stage-frame'));
   }
   $('#zoomOut').value = state.photoCfg.zoom + '%';
   $('#frameSizeOut').value = state.photoCfg.frameSize + '%';
@@ -1659,7 +1691,8 @@ function footerCredit() {
 }
 
 function todayValue() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function validDateValue(v) {
