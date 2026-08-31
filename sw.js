@@ -1,4 +1,4 @@
-const CACHE='wishcraft-v20';
+const CACHE='wishcraft-v21';
 // Precache the app shell plus only the festival images templates.js actually references
 // (each festival also has unused legacy .svg/.png duplicates on disk from earlier iterations;
 // those are intentionally left out of install-time precache and are runtime-cached on demand
