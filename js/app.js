@@ -319,6 +319,9 @@ function generate() {
 }
 
 function renderFestivalFilter() {
+  const bar = $('.template-filter-bar');
+  if (bar) bar.classList.toggle('hidden', state.occasion !== 'festival');
+
   const select = $('#templateCategoryFilter');
   if (select) {
     select.value = state.festivalFilter || 'all';
@@ -572,6 +575,7 @@ function renderCard() {
     `;
   }
 
+  bindPhotoDrag($('#cardPreview .card-photo-frame'));
   syncPreviewTune();
 }
 
@@ -593,6 +597,18 @@ function photoMarkup(mode) {
     `<div class="photo-stage-frame" style="${frameStyle};width:${p.frameSize}%;top:${p.frameY}%">${img}</div>`;
 }
 
+// Patches every photo frame currently in the DOM (the upload-step stage
+// preview and the live card preview both render their own copy of the
+// photo) without rebuilding either subtree, so a frame mid-drag never gets
+// destroyed by its own reposition.
+function livePhotoPositionUpdate() {
+  const pos = `${focusPct(state.photoCfg.panX)}% ${focusPct(state.photoCfg.panY)}%`;
+  $$('.photo-stage-frame img, .card-photo-frame img').forEach(img => {
+    img.style.objectPosition = pos;
+    img.style.transformOrigin = pos;
+  });
+}
+
 function bindPhotoDrag(frame) {
   if (!frame || !state.photo) return;
   frame.style.touchAction = 'none';
@@ -603,17 +619,11 @@ function bindPhotoDrag(frame) {
     frame.style.cursor = 'grabbing';
     const rect = frame.getBoundingClientRect(), startX = e.clientX, startY = e.clientY,
       startPanX = state.photoCfg.panX, startPanY = state.photoCfg.panY;
-    const img = frame.querySelector('img');
     frame.onpointermove = ev => {
       const dx = (ev.clientX - startX) / rect.width * 200, dy = (ev.clientY - startY) / rect.height * 200;
       state.photoCfg.panX = Math.max(-100, Math.min(100, startPanX - dx));
       state.photoCfg.panY = Math.max(-100, Math.min(100, startPanY - dy));
-      const pos = `${focusPct(state.photoCfg.panX)}% ${focusPct(state.photoCfg.panY)}%`;
-      if (img) {
-        img.style.objectPosition = pos;
-        img.style.transformOrigin = pos;
-      }
-      renderCard();
+      livePhotoPositionUpdate();
     };
     frame.onpointerup = () => {
       frame.onpointermove = null;
