@@ -319,6 +319,9 @@ function generate() {
 }
 
 function renderFestivalFilter() {
+  const bar = $('.template-filter-bar');
+  if (bar) bar.classList.toggle('hidden', state.occasion !== 'festival');
+
   const select = $('#templateCategoryFilter');
   if (select) {
     select.value = state.festivalFilter || 'all';
@@ -502,7 +505,7 @@ function renderCard() {
           <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px); margin-top:${posterPhotoClear}%">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
             <p class="poster-message" style="font-size:${l.bodySize}px; line-height:${l.lineHeight / 100}; color:${d.textColor}">${escapeHtml($('#message').value)}</p>
-            ${sender ? `<div class="poster-sender" style="color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
+            ${sender ? `<div class="poster-sender" style="font-size:${Math.max(l.bodySize, 16)}px; color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
           </div>
 
           <div class="poster-tagline" style="color:${d.textColor}">
@@ -565,13 +568,14 @@ function renderCard() {
         <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
         ${d.tagline ? `<div class="card-tagline-text"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
-        ${sender ? `<div class="card-signature">— ${escapeHtml(sender)}</div>` : ''}
+        ${sender ? `<div class="card-signature" style="font-size:${Math.max(l.bodySize + 2, 18)}px">— ${escapeHtml(sender)}</div>` : ''}
       </section>
       ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
       <div class="card-watermark">MADE WITH WISHCRAFT</div>
     `;
   }
 
+  bindPhotoDrag($('#cardPreview .card-photo-frame'));
   syncPreviewTune();
 }
 
@@ -593,6 +597,43 @@ function photoMarkup(mode) {
     `<div class="photo-stage-frame" style="${frameStyle};width:${p.frameSize}%;top:${p.frameY}%">${img}</div>`;
 }
 
+// Patches every photo frame currently in the DOM (the upload-step stage
+// preview and the live card preview both render their own copy of the
+// photo) without rebuilding either subtree, so a frame mid-drag never gets
+// destroyed by its own reposition.
+function livePhotoPositionUpdate() {
+  const pos = `${focusPct(state.photoCfg.panX)}% ${focusPct(state.photoCfg.panY)}%`;
+  $$('.photo-stage-frame img, .card-photo-frame img').forEach(img => {
+    img.style.objectPosition = pos;
+    img.style.transformOrigin = pos;
+  });
+}
+
+function bindPhotoDrag(frame) {
+  if (!frame || !state.photo) return;
+  frame.style.touchAction = 'none';
+  frame.style.cursor = 'grab';
+  frame.onpointerdown = e => {
+    e.preventDefault();
+    frame.setPointerCapture(e.pointerId);
+    frame.style.cursor = 'grabbing';
+    const rect = frame.getBoundingClientRect(), startX = e.clientX, startY = e.clientY,
+      startPanX = state.photoCfg.panX, startPanY = state.photoCfg.panY;
+    frame.onpointermove = ev => {
+      const dx = (ev.clientX - startX) / rect.width * 200, dy = (ev.clientY - startY) / rect.height * 200;
+      state.photoCfg.panX = Math.max(-100, Math.min(100, startPanX - dx));
+      state.photoCfg.panY = Math.max(-100, Math.min(100, startPanY - dy));
+      livePhotoPositionUpdate();
+    };
+    frame.onpointerup = () => {
+      frame.onpointermove = null;
+      updatePhotoPreview();
+      renderCard();
+      saveWorking();
+    };
+  };
+}
+
 function updatePhotoPreview() {
   const live = $('#photoLivePreview'), stage = $('#photoLivePreview .photo-stage-frame');
   if (!live || !stage) return;
@@ -602,6 +643,7 @@ function updatePhotoPreview() {
     stage.innerHTML = '<span>Photo preview appears here</span>';
   } else {
     stage.outerHTML = photoMarkup('stage');
+    bindPhotoDrag($('#photoLivePreview .photo-stage-frame'));
   }
   $('#zoomOut').value = state.photoCfg.zoom + '%';
   $('#frameSizeOut').value = state.photoCfg.frameSize + '%';
@@ -1659,7 +1701,8 @@ function footerCredit() {
 }
 
 function todayValue() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function validDateValue(v) {
