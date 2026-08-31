@@ -335,15 +335,102 @@ const FESTIVAL_TONE_MESSAGES = {
 const OCC_LINES = {
   birthday: 'May this day feel extra special. May the year ahead bring laughter, good health, exciting adventures, and beautiful memories.',
   anniversary: 'May your partnership grow richer, kinder, and more joyful with every passing milestone year.',
-  baby: 'May this precious little arrival fill your home with wonder, sweet laughter, gentle warmth, and boundless love.',
+  baby: 'May this precious new arrival fill your family with love, joy, and memories you will treasure forever.',
   congratulations: 'Your dedication and hard work have led to this wonderful achievement. Enjoy every single moment of your success.',
   housewarming: 'May your new home hold cozy comfort, hearty laughter, warm gatherings, and memories you will treasure forever.',
-  graduation: 'Your determination has opened a brilliant new door. Step forward with confidence, pride, and high aspirations.',
+  graduation: 'Your dedication to your education has brought you to this proud moment. Wishing you every success as you step into an exciting future.',
   retirement: 'May this well-earned new chapter bring freedom, exciting discoveries, relaxed days, and deep happiness.',
   getwell: 'Sending healing thoughts and positive energy. May each new day bring renewed strength, comfort, and quick recovery.',
   festival: 'May the festive celebration fill your home with luminous light, good health, peace, and joyous togetherness.',
   thanks: 'Thank you for the genuine kindness, wonderful support, and heartfelt cheer you bring into my life.',
   custom: 'May this special occasion become an unforgettable memory that you always cherish and celebrate.'
+};
+
+// Reason-aware wording for the generic "Congratulations" occasion, keyed by
+// what the free-text reason is actually about -- so a new home, a new baby,
+// or an engagement never gets hard-work/achievement language, and a
+// job/promotion or graduation gets language that fits it instead. Unmatched
+// (custom) reasons fall back to OCC_LINES.congratulations.
+const REASON_LINES = {
+  baby: 'This new little one is a beautiful gift for your family. May these early days be filled with love, joy, and precious memories that last a lifetime.',
+  job: 'This exciting opportunity is a wonderful reflection of your talent and hard work. Wishing you continued growth and great success in this new role.',
+  graduation: 'Your years of dedication to your education have brought you to this proud moment. Wishing you every success as you step into an exciting future.',
+  home: 'May your new home be filled with comfort, warm gatherings, and memories you will treasure for years to come.',
+  relationship: 'Wishing you both a lifetime of love, partnership, and happiness together.'
+};
+
+// Categorizes a free-text "reason" field so both the heading (via
+// reasonHeadingPhrase) and the body (via REASON_LINES) can pick fitting
+// language -- in particular so parenthood, marriage/engagement and a new
+// home never get achievement/hard-work phrasing (see REASON_LINES/item 6).
+function reasonCategory(reason) {
+  const r = (reason || '').toLowerCase();
+  if (!r) return null;
+  // Note: several alternatives (pregnan-, promot-, graduat-) are word STEMS,
+  // not complete words -- "pregnant"/"pregnancy", "promotion"/"promoted",
+  // "graduation"/"graduate" all need to match, so there's deliberately no
+  // trailing \b (a trailing \b after "graduat" would never match anything,
+  // since real English always continues past that stem).
+  if (/\b(baby|babies|newborn|pregnan|expecting|new arrival)/.test(r)) return 'baby';
+  if (/\b(marri|wedding|engage)/.test(r)) return 'relationship';
+  if (/\b(home|house|flat|apartment)\b/.test(r)) return 'home';
+  if (/\b(job|career|promot|hired?|placement|position|offer)/.test(r)) return 'job';
+  if (/\b(graduat|degree|mbbs|md|phd|b\.?tech|m\.?tech|mba|diploma|course|university|college)/.test(r)) return 'graduation';
+  return null;
+}
+
+// Turns a typed reason ("New Home", "MBBS", "Graduation") into the phrase
+// that slots into "Congratulations on {phrase}, {Name}" (item 4). If the
+// text already reads naturally (starts with "your"/"a"/"completing"/...) it
+// is used as typed; a short all-caps token in the graduation category (e.g.
+// "MBBS", "MD") becomes "Completing Your {X}"; other recognized categories
+// get a "Your {reason}" prefix; anything unrecognized is used as-is, giving
+// the neutral "Congratulations on {reason}" wording item 6 asks for.
+function reasonHeadingPhrase(reason) {
+  const trimmed = (reason || '').trim();
+  if (!trimmed) return '';
+  if (/^(a|an|the|your|completing|getting|becoming|earning|passing)\b/i.test(trimmed)) {
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+  const cat = reasonCategory(trimmed);
+  if (cat === 'graduation' && /^[A-Za-z.]{2,8}$/.test(trimmed) && trimmed === trimmed.toUpperCase()) {
+    return `Completing Your ${trimmed}`;
+  }
+  if (cat) return `Your ${trimmed}`;
+  return trimmed;
+}
+
+const GETWELL_TONE_MESSAGES = {
+  joyful: [
+    'Sending you bright thoughts and gentle energy today. May comfort find you quickly and each day bring a little more strength than the last.',
+    'Wishing you brighter days ahead and a smooth, steady recovery. Rest well and take all the time you need.',
+    'Sending sunshine your way to help speed along a comfortable and steady recovery.'
+  ],
+  warm: [
+    'Sending you warm wishes for a comfortable and steady recovery. May each day bring renewed strength, rest, and better health. Take good care and get well soon.',
+    'Thinking of you with warmth and care. May comfort, rest, and gentle healing surround you every day.',
+    'Wrapping you in warm thoughts and wishing you a peaceful, steady road back to good health.'
+  ],
+  candid: [
+    'Hope you are taking it easy and letting yourself rest. Sending good thoughts your way for a speedy, comfortable recovery.',
+    'Just checking in with love -- rest up, follow doctor\'s orders, and feel better soon.',
+    'Sending you comfort and care. Take it slow, and here is to feeling like yourself again soon.'
+  ],
+  funny: [
+    'Doctor\'s orders: rest, hydrate, and let people bring you snacks without arguing about it. Get well soon!',
+    'Consider this your official permission slip to do absolutely nothing until you feel better.',
+    'Wishing you a speedy recovery -- and a steady stream of good shows to binge while you rest.'
+  ],
+  formal: [
+    'Please accept our sincere wishes for a comfortable and complete recovery. May you be restored to good health very soon.',
+    'Wishing you patience, comfort, and a smooth recovery in the days ahead.',
+    'Sending sincere thoughts for your comfort and a full, steady return to good health.'
+  ],
+  heartfelt: [
+    'Holding you close in thought during this time. May you feel surrounded by comfort, care, and love as you heal.',
+    'Wishing you gentle strength and comfort with every new day, and a full return to good health.',
+    'From the heart, wishing you rest, healing, and comfort until you are feeling completely like yourself again.'
+  ]
 };
 
 const DEFAULT_FESTIVAL_LINES = {
@@ -366,7 +453,16 @@ function subjectFor(o, d) {
 
 function generatedMessage(occasion, tone, data, index = 0) {
   const fest = data.festival;
-  
+
+  // Get Well Soon must never carry celebration/birthday/congratulations
+  // wording, so it bypasses the generic tone-opener/ending machinery below
+  // (which is written for celebrations) and uses its own recovery-focused
+  // variants per tone instead.
+  if (occasion === 'getwell') {
+    const toneGroup = GETWELL_TONE_MESSAGES[tone] || GETWELL_TONE_MESSAGES.warm;
+    return toneGroup[index % toneGroup.length];
+  }
+
   // If it's a festival with defined multi-tone messages
   if (occasion === 'festival' && fest && FESTIVAL_TONE_MESSAGES[fest]) {
     const toneGroup = FESTIVAL_TONE_MESSAGES[fest][tone] || FESTIVAL_TONE_MESSAGES[fest].joyful;
@@ -389,12 +485,17 @@ function generatedMessage(occasion, tone, data, index = 0) {
     return `${opener}${line}`.replace(/\s+/g, ' ').trim();
   }
 
-  // For general occasions (birthday, anniversary, etc.)
-  const occLine = OCC_LINES[occasion] || OCC_LINES.custom;
+  // For general occasions (birthday, anniversary, etc.). "Congratulations" is
+  // reason-aware (item 6): the heading already states the reason, so the
+  // body picks fitting language by category instead of repeating "Congrats
+  // on {reason}!" -- which also avoids a trailing "!" against custom
+  // free-text reasons (item 5).
+  const occLine = occasion === 'congratulations'
+    ? (REASON_LINES[reasonCategory(data.reason)] || OCC_LINES.congratulations)
+    : (OCC_LINES[occasion] || OCC_LINES.custom);
   let detail = '';
-  if (occasion === 'anniversary' && data.year) detail = ` Happy ${ordinal(data.year)} anniversary!`;
-  if (['congratulations', 'graduation'].includes(occasion) && data.reason) detail = ` Congratulations on ${data.reason}!`;
-  if (occasion === 'custom' && data.title) detail = ` Wishing you a wonderful ${data.title}!`;
+  if (occasion === 'anniversary' && data.year) detail = ` Happy ${ordinal(data.year)} anniversary.`;
+  if (occasion === 'custom' && data.title) detail = ` Wishing you a wonderful ${data.title}.`;
   if (occasion === 'baby' && data.note) detail = ` ${data.note}.`;
 
   const toneOpeners = {
