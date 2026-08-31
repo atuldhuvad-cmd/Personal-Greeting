@@ -505,7 +505,7 @@ function renderCard() {
           <div class="poster-message-wrap" style="transform:translateY(${l.copyShift || 0}px); margin-top:${posterPhotoClear}%">
             <h3 class="poster-greeting" style="font-size:${l.titleSize}px; color:${d.textColor}">${escapeHtml(cardTitle())}</h3>
             <p class="poster-message" style="font-size:${l.bodySize}px; line-height:${l.lineHeight / 100}; color:${d.textColor}">${escapeHtml($('#message').value)}</p>
-            ${sender ? `<div class="poster-sender" style="color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
+            ${sender ? `<div class="poster-sender" style="font-size:${Math.max(l.bodySize, 16)}px; color:${d.accentColor || '#d97706'}">— ${escapeHtml(sender)}</div>` : ''}
           </div>
 
           <div class="poster-tagline" style="color:${d.textColor}">
@@ -568,7 +568,7 @@ function renderCard() {
         <h3 style="font-size:${l.titleSize}px">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${l.bodySize}px;line-height:${l.lineHeight / 100}">${escapeHtml($('#message').value)}</p>
         ${d.tagline ? `<div class="card-tagline-text"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
-        ${sender ? `<div class="card-signature">— ${escapeHtml(sender)}</div>` : ''}
+        ${sender ? `<div class="card-signature" style="font-size:${Math.max(l.bodySize + 2, 18)}px">— ${escapeHtml(sender)}</div>` : ''}
       </section>
       ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
       <div class="card-watermark">MADE WITH WISHCRAFT</div>
