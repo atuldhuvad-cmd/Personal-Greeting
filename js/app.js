@@ -57,6 +57,8 @@ function init() {
   renderStickers();
   bind();
   applyTheme();
+  renderAbout();
+  matchMedia('(display-mode: standalone)').addEventListener('change', renderAbout);
 
   $('#sender').value = state.settings.sender;
   $('#defaultSender').value = state.settings.sender;
@@ -1051,6 +1053,18 @@ function applyTheme() {
   let t = state.settings.theme;
   if (t === 'system') t = matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark';
   document.documentElement.dataset.theme = t;
+}
+
+// Reads the shared WISHCRAFT_VERSION (js/version.js) so the About panel can
+// never drift out of sync with the service worker's own cache version, which
+// is derived from that same constant. installed/offline status is read live
+// (display-mode + SW support) rather than hardcoded, so it reflects this
+// device's actual state.
+function renderAbout() {
+  const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+  const offline = 'serviceWorker' in navigator;
+  $('#aboutVersion').textContent = `Version ${WISHCRAFT_VERSION}`;
+  $('#aboutMode').textContent = `${installed ? 'Installed web app' : 'Running in browser'} · Offline ${offline ? 'enabled' : 'unavailable'}`;
 }
 
 async function install() {
