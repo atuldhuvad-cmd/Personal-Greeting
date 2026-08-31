@@ -176,6 +176,11 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
   .template-grid{grid-template-columns:1fr}
 }
 
+.about-panel .about-name{color:var(--ink);font-weight:700;margin-top:2px}
+.about-panel #aboutVersion,.about-panel #aboutMode{margin-top:4px}
+.about-link{display:inline-block;margin-top:10px;color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
+.about-link:hover{text-decoration:underline}
+
 /* Hero (full-bleed photographic) card layout — Birthday templates */
 .card-preview{container-type:inline-size}
 .card-preview.is-hero{background-repeat:no-repeat}
