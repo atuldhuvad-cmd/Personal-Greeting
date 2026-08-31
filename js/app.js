@@ -309,6 +309,14 @@ function renderFields() {
     `<label>${label}${type === 'select' ? `<select data-field="${id}">${options.map(v => `<option value="${v}" ${state.fields[id] === v ? 'selected' : ''}>${v}</option>`).join('')}</select>` : `<input data-field="${id}" type="${type}" value="${escapeAttr(state.fields[id] || '')}" placeholder="${label}">`}</label>`
   ).join('');
 
+  // 'Other' in the Festival dropdown is a stable key for filtering/template
+  // selection, not a display name -- when picked, show a second field for
+  // the actual festival, so the heading/PNG banner says what it's really
+  // for instead of the literal word "Other".
+  if (state.occasion === 'festival' && state.fields.festival === 'Other') {
+    $('#dynamicFields').insertAdjacentHTML('beforeend', `<label>Festival name<input data-field="customFestival" type="text" value="${escapeAttr(state.fields.customFestival || '')}" placeholder="e.g. Onam, Pongal, Lunar New Year"></label>`);
+  }
+
   $$('[data-field]').forEach(el => {
     if (el.tagName === 'SELECT') {
       if (state.fields[el.dataset.field]) el.value = state.fields[el.dataset.field];
@@ -316,12 +324,13 @@ function renderFields() {
     }
     el.oninput = () => {
       if (el.dataset.field === 'festival') {
-        syncFestivalField(el.value);
+        syncFestivalField(el.value); // already re-renders fields (shows/hides the custom-name input)
       } else {
         state.fields[el.dataset.field] = el.value;
         state.messageIndex = 0;
         generate();
       }
+      renderCard();
       renderTemplates();
       saveWorking();
     };
@@ -355,7 +364,11 @@ function renderFestivalFilter() {
 
   const select = $('#templateCategoryFilter');
   if (select) {
-    select.value = state.festivalFilter || 'all';
+    // 'Other' has no <option> of its own in this filter (it shows the same
+    // General-themes set 'General' does, so a separate duplicate entry would
+    // just be noise) -- display it as 'General' rather than leaving the
+    // native <select> unable to match any option and looking unselected.
+    select.value = state.festivalFilter === 'Other' ? 'General' : (state.festivalFilter || 'all');
   }
 
   const popular = [
@@ -401,8 +414,11 @@ function templateEligibleForOccasion(t, occasion) {
 
 function templatesForCurrentFilter() {
   const f = state.festivalFilter;
+  // 'Other' (a festival not in FESTIVAL_OPTIONS' named list) has no
+  // dedicated template -- fall back to the same occasion-agnostic General
+  // set as an actual "General" filter, rather than an empty gallery.
   const byFilter = !f || f === 'all' ? PRESET_TEMPLATES
-    : f === 'General' ? PRESET_TEMPLATES.filter(t => !t.festivals)
+    : (f === 'General' || f === 'Other') ? PRESET_TEMPLATES.filter(t => !t.festivals)
     : PRESET_TEMPLATES.filter(t => t.festivals?.includes(f));
   return byFilter.filter(t => templateEligibleForOccasion(t, state.occasion));
 }
@@ -1821,14 +1837,25 @@ function festivalHeadline(name) {
   return FESTIVAL_HEADLINE_OVERRIDES[name] || name;
 }
 
+// The literal festival value 'Other' is never a real display name (it would
+// render "Happy Other, Name") -- when selected, the user types the actual
+// festival into a second field (customFestival), and that's what belongs in
+// the headline/poster banner. Everywhere else (filtering, template
+// selection, message-line lookup) keeps using the literal 'Other', since
+// that's the stable key those need, not display text.
+function festivalDisplayName(d) {
+  if (d.festival === 'Other') return String(d.customFestival || '').trim() || 'Festival';
+  return festivalHeadline(d.festival);
+}
+
 function cardTitleText() {
   const d = data();
-  return festivalHeadline(d.festival) || 'Festival';
+  return festivalDisplayName(d) || 'Festival';
 }
 
 function cardTitle() {
   const d = data(), name = subjectFor(state.occasion, d);
-  const festivalName = festivalHeadline(d.festival) || 'Festival';
+  const festivalName = festivalDisplayName(d) || 'Festival';
 
   // Addressed to the baby (a baby name was given) vs addressed to the
   // parents (only a parent name was given) need different wording, not the
