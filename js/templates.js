@@ -408,25 +408,58 @@ const PRESET_TEMPLATES = [
     festivals: ['Ganesh Chaturthi']
   },
   {
+    // Recolored from its original saffron/orange (near-identical to
+    // ganesh-poster above -- see the Sep-2026 "both images look identical"
+    // report) to a distinct deep maroon-and-gold "royal" palette, with an Om
+    // sticker in place of the marigold to keep the decoration set distinct
+    // from the other two Ganesh Chaturthi templates too.
     id: 'ganesh-royal',
     fitCopy: true,
     name: 'Ganesh Siddhivinayak Gold',
-    category: 'Ganesh Chaturthi · Saffron & Crimson Art',
+    category: 'Ganesh Chaturthi · Royal Maroon & Gold Art',
     festival: 'Ganesh Chaturthi',
     styleType: 'royal',
     badge: 'VIGHNAHARTA BLESSINGS',
     subtitle: 'Wisdom, Auspiciousness & Joy',
     tagline: 'May Lord Ganesha remove all obstacles and shower prosperity upon your family.',
     image: 'assets/festival/ganesh.jpg',
-    background: 'linear-gradient(145deg, #9a3412 0%, #ea580c 50%, #fef08a 100%)',
-    colors: ['#9a3412', '#fef08a'],
-    textColor: '#451a03',
+    background: 'linear-gradient(145deg, #4c0519 0%, #7f1d1d 50%, #fbbf24 100%)',
+    colors: ['#4c0519', '#fbbf24'],
+    textColor: '#450a0a',
     headerTextColor: '#ffffff',
-    accentColor: '#ea580c',
+    accentColor: '#fbbf24',
     font: 'serif',
-    stickers: ['🪔', '🌺', '✨', '👑'],
+    stickers: ['🪔', '🕉️', '✨', '👑'],
     shape: 'circle',
-    border: '#f59e0b',
+    border: '#fbbf24',
+    panel: true,
+    festivals: ['Ganesh Chaturthi']
+  },
+  {
+    // Third Ganesh Chaturthi design (Sep-2026): a distinct emerald-and-gold
+    // palette with its own decoration set (lotus/peacock instead of the
+    // other two templates' marigold/crown), so the three read as genuinely
+    // different designs at a glance rather than color variations on the same
+    // saffron theme.
+    id: 'ganesh-emerald',
+    fitCopy: true,
+    name: 'Ganesh Emerald Blessings',
+    category: 'Ganesh Chaturthi · Emerald & Gold Art',
+    festival: 'Ganesh Chaturthi',
+    styleType: 'emerald',
+    badge: 'MANGAL MURTI BLESSINGS',
+    subtitle: 'Peace, Wisdom & New Beginnings',
+    tagline: 'May Ganpati Bappa bring peace, wisdom and new beginnings to your family.',
+    image: 'assets/festival/ganesh.jpg',
+    background: 'linear-gradient(145deg, #052e16 0%, #14532d 50%, #facc15 100%)',
+    colors: ['#14532d', '#facc15'],
+    textColor: '#052e16',
+    headerTextColor: '#ffffff',
+    accentColor: '#16a34a',
+    font: 'sans',
+    stickers: ['🪷', '🪔', '✨', '🦚'],
+    shape: 'soft',
+    border: '#facc15',
     panel: true,
     festivals: ['Ganesh Chaturthi']
   },
