@@ -79,11 +79,26 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .template-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px #0004}
 .template-card.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 8px 25px #f09a7226}
 .template-thumb{aspect-ratio:4/5;border-radius:14px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:10px;box-shadow:0 4px 14px #0003}
-.thumb-badge{align-self:flex-start;font-size:9px;font-weight:900;color:#fff;padding:3px 8px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 6px #0004}
+/* .thumb-badge and .thumb-title get position:relative + z-index directly (not
+   .thumb-center) so they stack above .thumb-art-img -- .thumb-center is the
+   img's own parent, and giving *it* a position would make it the img's
+   containing block and break its inset:0 sizing (that was the bug in an
+   earlier version of this fix). */
+.thumb-badge{position:relative;z-index:2;align-self:flex-start;font-size:9px;font-weight:900;color:#fff;padding:3px 8px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 6px #0004}
 .thumb-center{margin:auto;text-align:center;width:100%}
-.thumb-art-img{width:100%;height:68px;object-fit:cover;border-radius:8px;margin:4px 0;display:block;box-shadow:0 3px 10px rgba(0,0,0,.35)}
-.thumb-icon{font-size:36px;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))}
-.thumb-title{font-size:12px;font-weight:800;line-height:1.2;margin-top:4px;display:block;text-shadow:0 1px 4px rgba(0,0,0,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Fills the whole thumbnail as a photo background (was a fixed 68px strip,
+   leaving most of the tall 4:5 card blank beneath it -- see the Sep-2026
+   Ganesh Chaturthi template report). The badge/title already carry a
+   shadow/pill treatment meant to sit on top of a photo, so this restores
+   that intent instead of changing it. Positioned against .template-thumb
+   (the nearest position:relative ancestor), not .thumb-center. */
+.thumb-art-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0;margin:0;box-shadow:none;z-index:0}
+.thumb-icon{position:relative;z-index:2;font-size:36px;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3))}
+/* Explicit white + position/z-index overrides the inherited per-template
+   textColor (chosen for that template's old solid background, not for
+   sitting on an arbitrary photo) and lifts the title above the photo --
+   needed now that .thumb-art-img is a full-bleed photo. */
+.thumb-title{position:relative;z-index:2;color:#fff;font-size:12px;font-weight:800;line-height:1.2;margin-top:4px;display:block;text-shadow:0 1px 5px rgba(0,0,0,.75),0 0 10px rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thumb-pillars{display:flex;justify-content:center;gap:6px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);border-radius:99px;padding:3px 8px;font-size:12px;margin-top:auto}
 .template-card-info strong{display:block;font-size:14px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .template-card-info small{color:var(--muted);font-size:11px;display:block}
