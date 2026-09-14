@@ -525,6 +525,7 @@ function renderCard() {
       ${state.photo ? photoMarkup('card') : ''}
       <div class="hero-footer-scrim" style="background:linear-gradient(to top, rgba(${scrim},.92) 0%, rgba(${scrim},.92) 65%, rgba(${scrim},0) 100%)">
         <div class="hero-footer-inner">
+          ${$('#message').value ? `<div class="hero-message" style="color:${d.textColor}">${escapeHtml($('#message').value)}</div>` : ''}
           ${sender ? `<div class="hero-sender" style="color:${d.accentColor || d.textColor}">— ${escapeHtml(sender)}</div>` : ''}
         </div>
       </div>
@@ -1901,8 +1902,29 @@ async function paintHeroCard(x, d, w, h) {
 
   const sender = data().sender;
   const credit = footerCredit();
+  const message = $('#message').value;
   x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
+  // Hero-layout templates never drew the typed message at all (Sep-2026
+  // report: "Message not inserted in the Birthday card") -- only the title
+  // and the sender. Mirrors the DOM's hero-footer-inner order (added there
+  // in renderCard()'s isHero branch): message directly above the sender,
+  // both still anchored near the card's bottom edge, per the user's request
+  // to place it "between image and sender's name". Sender's own position
+  // (h*0.90) is left exactly as-is so the credit/watermark rhythm below it
+  // doesn't shift; the message block is measured and placed to end just
+  // above that unchanged sender line, growing upward for extra lines.
+  if (message) {
+    const msgSize = Math.round(h * 0.02);
+    x.font = `600 ${msgSize}px ${BODY_FONT}`;
+    const msgLines = measureLines(x, message, w * 0.82);
+    const msgLineH = msgSize * 1.35;
+    x.textBaseline = 'top';
+    x.fillStyle = d.textColor || '#ffffff';
+    const msgTop = h * 0.90 - h * 0.04 - msgLines.length * msgLineH;
+    drawLines(x, msgLines, w / 2, msgTop, msgLineH);
+    x.textBaseline = 'alphabetic';
+  }
   if (sender) {
     x.font = `700 ${Math.round(h * 0.023)}px ${BODY_FONT}`;
     x.fillStyle = d.accentColor || d.textColor || '#ffffff';

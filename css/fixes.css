@@ -222,5 +222,15 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .hero-footer-scrim{position:absolute;left:0;right:0;bottom:0;top:72%;z-index:2;display:flex;align-items:flex-end}
 .hero-footer-inner{width:100%;padding:4% 7% 20%;display:flex;flex-direction:column;align-items:center;gap:1.6%}
 .hero-sender{font-size:4.6cqw;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.25)}
+/* Hero-layout templates (birthday-elegant/birthday-bright) previously never
+   showed the typed message at all -- only the big title and the sender
+   signature (Sep-2026 report: "Message not inserted in the Birthday card").
+   Added here, in the same bottom-anchored footer block as the sender and
+   ordered above it, per the user's request to place it "between image and
+   sender's name". Sized between the title and the signature: smaller than
+   hero-sender (a name/signature reads fine bigger; a multi-line message at
+   that size would crowd the photo above it) but still comfortably readable
+   over the photo thanks to the same footer scrim. */
+.hero-message{font-size:3.4cqw;font-weight:600;line-height:1.35;text-align:center;white-space:pre-wrap;text-shadow:0 1px 6px rgba(0,0,0,.25)}
 .card-preview.is-hero .card-photo-frame{z-index:3}
 .card-preview.is-hero .developer-credit,.card-preview.is-hero .card-watermark{z-index:4}
