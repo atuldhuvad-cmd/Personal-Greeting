@@ -611,11 +611,11 @@ function renderCard() {
       ` : ''}
       ${state.photo ? photoMarkup('card', d.image ? 'fit' : null) : ''}
 
-      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="top:${textTopPct}%;padding-top:${cq(20 * fit.gapScale)};${panelStyleOverride(d)}">
-        <h3 style="font-size:${cq(fit.titleSize)};line-height:1.15;margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
-        <p style="font-size:${cq(fit.msgSize)};line-height:1.25">${escapeHtml($('#message').value)}</p>
-        ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
-        ${sender ? `<div class="card-signature" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_SIG_SIZE)}">— ${escapeHtml(sender)}</div>` : ''}
+      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="top:${textTopPct}%;padding-top:${cq(20 * fit.gapScale)};transform:translateY(${l.copyShift || 0}px);${panelStyleOverride(d)}">
+        <h3 style="font-size:${cq(fit.titleSize)};line-height:${fit.titleLineMult};margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
+        <p style="font-size:${cq(fit.msgSize)};line-height:${fit.msgLineMult}">${escapeHtml($('#message').value)}</p>
+        ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)};line-height:${fit.tagLineMult}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
+        ${sender ? `<div class="card-signature" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_SIG_SIZE)};line-height:${fit.sigLineMult}">— ${escapeHtml(sender)}</div>` : ''}
       </section>
       ${credit ? `<div class="developer-credit">${escapeHtml(credit)}</div>` : ''}
       <div class="card-watermark">MADE WITH WISHCRAFT</div>
@@ -1422,6 +1422,28 @@ const FIT_AUTO_MIN = 26, FIT_AUTO_MAX = 60;
 // 38%-88%.
 function fitBudgetH(textTopPct) { return (1350 * FIT_ZONE_BOTTOM / 100 - 1350 * textTopPct / 100) * 0.88; }
 
+// The "Fine tune preview" panel's Title size / Message size / Line spacing
+// sliders drive state.layout.titleSize/bodySize/lineHeight directly as
+// literal px/percent for the poster and default card layouts (l.titleSize,
+// l.bodySize, l.lineHeight used as-is there) -- but the isFit/"royal"
+// layout has always sized its own type independently via the fixed
+// FIT_TITLE_MAX/FIT_MSG_MAX shrink-to-fit constants below, ignoring those
+// sliders entirely. That made the sliders silently do nothing on royal
+// templates (Sep-2026 report: "Title size, Message size and other 2 option
+// not working" after adding the Text box up/down slider next to them, which
+// DOES work, making the contrast obvious). Fix: treat the slider values as
+// scale factors against their own defaults (28/17/125) and apply them to
+// every FIT_TITLE_*/FIT_MSG_MAX/line-height-multiplier use below, so moving
+// them visibly changes the rendered card here too.
+function fitLayoutScale() {
+  const l = state.layout || {};
+  return {
+    titleScale: (l.titleSize || 28) / 28,
+    msgScale: (l.bodySize || 17) / 17,
+    lineScale: (l.lineHeight || 125) / 125
+  };
+}
+
 // Ideal (un-budgeted) height this exact title/message/tagline/signature would
 // take at full preferred font sizes and full gaps -- i.e. how tall the text
 // zone would need to be for fitCardCopy() to never have to shrink anything.
@@ -1432,9 +1454,11 @@ function autoFitTextTopPct(d, title, message, opts) {
   const { hasSender = false, tagline = '' } = opts || {};
   const family = FONT_MAP[d.font] || 'sans-serif';
   const ctx = getFitContext();
-  ctx.font = `800 ${FIT_TITLE_MAX}px ${family}`;
+  const { titleScale, msgScale, lineScale } = fitLayoutScale();
+  const titleMax = FIT_TITLE_MAX * titleScale, msgMax = FIT_MSG_MAX * msgScale;
+  ctx.font = `800 ${titleMax}px ${family}`;
   const titleLines = measureLines(ctx, title, FIT_MAX_WIDTH);
-  ctx.font = `600 ${FIT_MSG_MAX}px ${BODY_FONT}`;
+  ctx.font = `600 ${msgMax}px ${BODY_FONT}`;
   const msgLines = measureLines(ctx, message, FIT_MAX_WIDTH);
   let tagLines = [];
   if (tagline) {
@@ -1442,10 +1466,10 @@ function autoFitTextTopPct(d, title, message, opts) {
     tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
   }
   const topPad = 20, titleGap = 14, tagGap = tagline ? 20 : 0, sigGap = hasSender ? 20 : 0,
-    titleH = titleLines.length * FIT_TITLE_MAX * 1.15,
-    msgH = msgLines.length * FIT_MSG_MAX * 1.25,
-    tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3,
-    sigH = hasSender ? FIT_SIG_SIZE * 1.2 : 0;
+    titleH = titleLines.length * titleMax * 1.15 * lineScale,
+    msgH = msgLines.length * msgMax * 1.25 * lineScale,
+    tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3 * lineScale,
+    sigH = hasSender ? FIT_SIG_SIZE * 1.2 * lineScale : 0;
   const naturalTotal = topPad + titleH + titleGap + msgH + tagGap + tagH + sigGap + sigH;
   // 8% headroom only (not also reversing fitBudgetH's own 0.88 wrap-safety
   // factor, which was double-counted here in an earlier version and left the
@@ -1479,6 +1503,16 @@ function fitCardCopy(d, title, message, opts) {
   const ctx = getFitContext();
   const { textTopPct, artHeightPct } = fitZoneGeometry(d, title, message, opts);
   const budgetH = fitBudgetH(textTopPct);
+  // Title size / Message size / Line spacing sliders scale the shrink-to-fit
+  // range and line-height multipliers (see fitLayoutScale() above); the
+  // scaled multipliers are returned below so callers (renderCard's HTML and
+  // paintFitCopy's canvas draw) use them instead of their own hardcoded
+  // 1.15/1.25/1.3/1.2 constants.
+  const { titleScale, msgScale, lineScale } = fitLayoutScale();
+  const titleMax = FIT_TITLE_MAX * titleScale, titleMin = FIT_TITLE_MIN * titleScale;
+  const msgMax = FIT_MSG_MAX * msgScale, msgMin = FIT_MSG_MIN * msgScale;
+  const titleLineMult = 1.15 * lineScale, msgLineMult = 1.25 * lineScale,
+    tagLineMult = 1.3 * lineScale, sigLineMult = 1.2 * lineScale;
 
   function measure(titleSize, msgSize, gapScale) {
     ctx.font = `800 ${titleSize}px ${family}`;
@@ -1491,33 +1525,35 @@ function fitCardCopy(d, title, message, opts) {
       tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
     }
     const topPad = 20 * gapScale;
-    const titleH = titleLines.length * titleSize * 1.15;
+    const titleH = titleLines.length * titleSize * titleLineMult;
     const titleGap = 14 * gapScale;
-    const msgH = msgLines.length * msgSize * 1.25;
+    const msgH = msgLines.length * msgSize * msgLineMult;
     const tagGap = tagline ? 20 * gapScale : 0;
-    const tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3;
+    const tagH = tagLines.length * FIT_TAGLINE_SIZE * tagLineMult;
     const sigGap = hasSender ? 20 * gapScale : 0;
-    const sigH = hasSender ? FIT_SIG_SIZE * 1.2 : 0;
+    const sigH = hasSender ? FIT_SIG_SIZE * sigLineMult : 0;
     const total = topPad + titleH + titleGap + msgH + tagGap + tagH + sigGap + sigH;
     return { total, titleLines, msgLines, tagLines };
   }
 
+  const lineMults = { titleLineMult, msgLineMult, tagLineMult, sigLineMult };
+
   // Phase 1: full (preferred) font size, shrink inter-element gaps first.
   for (let g = 1; g >= FIT_GAP_MIN; g -= 0.05) {
-    const r = measure(FIT_TITLE_MAX, FIT_MSG_MAX, g);
-    if (r.total <= budgetH) return { titleSize: FIT_TITLE_MAX, msgSize: FIT_MSG_MAX, gapScale: g, fits: true, textTopPct, artHeightPct, ...r };
+    const r = measure(titleMax, msgMax, g);
+    if (r.total <= budgetH) return { titleSize: titleMax, msgSize: msgMax, gapScale: g, fits: true, textTopPct, artHeightPct, ...lineMults, ...r };
   }
   // Phase 2: gaps at floor, shrink title+message together down to enforced minimums.
   for (let s = 1; s >= 0; s -= 0.02) {
-    const ts = FIT_TITLE_MIN + (FIT_TITLE_MAX - FIT_TITLE_MIN) * s;
-    const ms = FIT_MSG_MIN + (FIT_MSG_MAX - FIT_MSG_MIN) * s;
+    const ts = titleMin + (titleMax - titleMin) * s;
+    const ms = msgMin + (msgMax - msgMin) * s;
     const r = measure(ts, ms, FIT_GAP_MIN);
-    if (r.total <= budgetH) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, textTopPct, artHeightPct, ...r };
+    if (r.total <= budgetH) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, textTopPct, artHeightPct, ...lineMults, ...r };
   }
   // Truly infeasible even at floor sizes (only possible with pathological
   // user-typed text, not any generated message) -- caller must warn rather
   // than clip/truncate; render at floor sizes with overflow left visible.
-  return { titleSize: FIT_TITLE_MIN, msgSize: FIT_MSG_MIN, gapScale: FIT_GAP_MIN, fits: false, textTopPct, artHeightPct, ...measure(FIT_TITLE_MIN, FIT_MSG_MIN, FIT_GAP_MIN) };
+  return { titleSize: titleMin, msgSize: msgMin, gapScale: FIT_GAP_MIN, fits: false, textTopPct, artHeightPct, ...lineMults, ...measure(titleMin, msgMin, FIT_GAP_MIN) };
 }
 
 function paintFitCopy(x, d, w, h) {
@@ -1528,7 +1564,10 @@ function paintFitCopy(x, d, w, h) {
 
   x.textAlign = 'center';
   x.textBaseline = 'top';
-  let y = top + 20 * fit.gapScale;
+  // Text position slider (state.layout.copyShift): same *2 canvas-vs-DOM
+  // scale factor the poster/default canvas paths already use for this same
+  // control, so it nudges the block by a comparable amount here too.
+  let y = top + 20 * fit.gapScale + (state.layout.copyShift || 0) * 2;
 
   if (d.panel) {
     x.save();
@@ -1546,17 +1585,17 @@ function paintFitCopy(x, d, w, h) {
   }
 
   x.font = `800 ${fit.titleSize}px ${family}`;
-  y = drawLines(x, fit.titleLines, w / 2, y, fit.titleSize * 1.15);
+  y = drawLines(x, fit.titleLines, w / 2, y, fit.titleSize * fit.titleLineMult);
   y += 14 * fit.gapScale;
 
   x.font = `600 ${fit.msgSize}px ${BODY_FONT}`;
-  y = drawLines(x, fit.msgLines, w / 2, y, fit.msgSize * 1.25);
+  y = drawLines(x, fit.msgLines, w / 2, y, fit.msgSize * fit.msgLineMult);
 
   if (d.tagline && fit.tagLines.length) {
     y += 20 * fit.gapScale;
     x.font = `italic 700 ${FIT_TAGLINE_SIZE}px ${BODY_FONT}`;
     x.fillStyle = d.textColor || '#ffffff';
-    y = drawLines(x, fit.tagLines, w / 2, y, FIT_TAGLINE_SIZE * 1.3);
+    y = drawLines(x, fit.tagLines, w / 2, y, FIT_TAGLINE_SIZE * fit.tagLineMult);
   }
 
   if (sender) {
