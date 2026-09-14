@@ -109,7 +109,11 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .poster-header{padding:14px 12px 10px;text-align:center;position:relative;flex-shrink:0;box-shadow:0 3px 12px rgba(0,0,0,.15)}
 .poster-main-title{font-family:Impact,Arial Black,sans-serif;font-weight:900;font-size:clamp(20px,5.8vw,28px);letter-spacing:.08em;text-transform:uppercase;line-height:1.08}
 .poster-subtitle{font-size:clamp(11px,3vw,13px);font-weight:700;margin-top:3px;opacity:.95;letter-spacing:.02em}
-.poster-body{flex:1;padding:10px 14px 8px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;background:#fffdfa}
+/* justify-content is flex-start (not space-between) so any leftover vertical
+   room in this column goes to .poster-art-section's flex-grow below, instead
+   of being spread out as blank gaps between the art, message and tagline --
+   see the Sep-2026 "blank space above/below the message" report. */
+.poster-body{flex:1;padding:10px 14px 8px;display:flex;flex-direction:column;justify-content:flex-start;position:relative;overflow:hidden;background:#fffdfa}
 .poster-date{font-size:10px;font-weight:700;color:#64748b;text-align:center;margin-bottom:4px}
 .poster-message-wrap{text-align:center;margin:2px 0 6px}
 .poster-greeting{font-size:18px;font-weight:800;margin:0 0 4px;line-height:1.15}
@@ -129,7 +133,19 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .poster-footer{flex-shrink:0;padding:6px 12px 10px;text-align:center;background:inherit}
 .poster-credit{font:700 9px var(--font);color:#64748b;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
 .poster-footer .card-watermark{position:static;display:block;bottom:auto}
-.poster-art-section{width:100%;height:135px;overflow:hidden;border-radius:12px;margin:3px 0 6px;border:1.5px solid rgba(0,0,0,.08);background:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+/* flex:1 from a modest 90px starting point (flex-basis, not min-height) so
+   this grows to fill whatever room the message/tagline block below doesn't
+   need -- a short message hands the art zone more space instead of leaving a
+   blank gap. Deliberately NOT min-height: a hard floor can't be shrunk below
+   by flex-shrink, so on a narrow card with a longer default message it would
+   force the message/tagline to overflow .poster-body's overflow:hidden and
+   get clipped instead. flex-basis has no such floor -- it still shrinks
+   below 90px like the old fixed-135px art box already did (down to a sliver
+   if truly needed), so a longer message can never push text off the card;
+   it just no longer holds art to a fixed size when there's slack to spare.
+   Mirrors paintPosterCanvas()'s auto-computed artH on the canvas-export
+   side, so the download matches. */
+.poster-art-section{width:100%;flex:1 1 90px;overflow:hidden;border-radius:12px;margin:3px 0 6px;border:1.5px solid rgba(0,0,0,.08);background:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .poster-art-img{width:100%;height:100%;object-fit:cover;display:block}
 
 .card-top-badge{display:inline-block;flex-shrink:0;font-size:10px;font-weight:900;letter-spacing:.08em;padding:4px 12px;border-radius:999px;margin:0 auto 10px;text-transform:uppercase;box-shadow:0 2px 8px rgba(0,0,0,.3)}
@@ -159,7 +175,7 @@ button,input,textarea,select,.occasion-grid>*{min-width:0}
 .card-copy.fit-copy p{margin:0}
 
 @media(max-width:520px){
-  .poster-art-section{height:110px}
+  .poster-art-section{flex-basis:70px}
   .card-art-section{height:100px;width:95%}
   .view{padding:46px 12px 16px}
   .panel{padding:16px;border-radius:14px}
