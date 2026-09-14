@@ -30,7 +30,7 @@ const state = {
   festivalFilter: 'General',
   photo: null,
   photoCfg: { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true },
-  layout: { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125 },
+  layout: { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125, fitTextTop: 'auto' },
   cardDate: '',
   showCardDate: false,
   custom: { aspect: 'portrait', color1: '#3b0764', color2: '#ec4899', backgroundType: 'linear', pattern: 'none', backgroundImage: null, font: 'sans', textColor: '#ffffff', fontSize: 36, alignment: 'center', lineHeight: 1.4, textGlow: false, stickers: [] },
@@ -104,7 +104,7 @@ function setupCreatePhotoPanel() {
 
 function setupPreviewTune() {
   if ($('#previewTune')) return;
-  $('#cardPreview').insertAdjacentHTML('afterend', '<details id="previewTune" class="preview-tune" open><summary>Fine tune preview</summary><button id="previewBack" class="secondary compact-btn" type="button">Back to edit</button><div class="compact-grid"><label>Title size <output id="titleSizeOut">28</output><input id="titleSize" type="range" min="18" max="36" value="28"></label><label>Message size <output id="bodySizeOut">17</output><input id="bodySize" type="range" min="12" max="24" value="17"></label><label>Text position <output id="copyShiftOut">0</output><input id="copyShift" type="range" min="-20" max="20" value="0"></label><label>Line spacing <output id="lineHeightOut">125%</output><input id="lineHeightCtl" type="range" min="105" max="150" value="125"></label></div><div class="compact-grid photo-quick"><label>Photo size <output id="quickFrameSizeOut">32%</output><input id="quickFrameSize" type="range" min="20" max="50" value="32"></label><label>Photo place <output id="quickFrameYOut">8%</output><input id="quickFrameY" type="range" min="4" max="38" value="8"></label></div></details>');
+  $('#cardPreview').insertAdjacentHTML('afterend', '<details id="previewTune" class="preview-tune" open><summary>Fine tune preview</summary><button id="previewBack" class="secondary compact-btn" type="button">Back to edit</button><div class="compact-grid"><label>Title size <output id="titleSizeOut">28</output><input id="titleSize" type="range" min="18" max="36" value="28"></label><label>Message size <output id="bodySizeOut">17</output><input id="bodySize" type="range" min="12" max="24" value="17"></label><label>Text position <output id="copyShiftOut">0</output><input id="copyShift" type="range" min="-20" max="20" value="0"></label><label>Line spacing <output id="lineHeightOut">125%</output><input id="lineHeightCtl" type="range" min="105" max="150" value="125"></label></div><div class="compact-grid fit-quick hidden"><label>Text box up/down <output id="fitTextTopOut">Auto</output><input id="fitTextTop" type="range" min="26" max="60" value="38"></label><label class="fit-auto-reset-label">&nbsp;<button id="fitTextTopAuto" class="secondary compact-btn" type="button">↺ Auto-fit</button></label></div><div class="compact-grid photo-quick"><label>Photo size <output id="quickFrameSizeOut">32%</output><input id="quickFrameSize" type="range" min="20" max="50" value="32"></label><label>Photo place <output id="quickFrameYOut">8%</output><input id="quickFrameY" type="range" min="4" max="38" value="8"></label></div></details>');
 }
 
 function setupDeveloperSettings() {
@@ -136,7 +136,7 @@ function load() {
 function normalizeState() {
   state.photo = null;
   state.photoCfg = { zoom: 100, panX: 0, panY: 0, frameSize: 32, frameY: 8, shape: 'soft', borderStyle: 'solid', borderWidth: 4, borderColor: '#ffffff', opacity: 100, shadow: true, ...state.photoCfg };
-  state.layout = { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125, ...state.layout };
+  state.layout = { titleSize: 28, bodySize: 17, copyShift: 0, lineHeight: 125, fitTextTop: 'auto', ...state.layout };
   state.settings = { sender: '', theme: 'dark', developerCredit: 'Developed by Dr.Atul Dhuvad', showDeveloperCredit: true, ...state.settings };
   state.cardDate = validDateValue(state.cardDate);
   state.showCardDate = state.showCardDate === true;
@@ -584,12 +584,20 @@ function renderCard() {
       </div>
     `;
   } else if (isFit) {
-    // fitCopy templates: badge/art live in their own fixed absolute zones
-    // (matching the canvas's h*0.11/h*0.23 art geometry exactly), and
-    // .card-copy is a fixed 38%-88% zone whose type sizes come from the same
+    // fitCopy templates: badge/art live in their own absolute zones, and
+    // .card-copy is a zone below it whose type sizes come from the same
     // fitCardCopy() the canvas export calls -- converted to cqw so the
     // relative proportions match the canvas's px sizing on a 1080-wide space.
+    // Where the two zones split (fit.textTopPct/fit.artHeightPct) normally
+    // auto-collapses to just what the current title/message/tagline/
+    // signature need, handing the rest back to the art zone -- see
+    // fitZoneGeometry()/autoFitTextTopPct() above fitCardCopy(). Dragging the
+    // "Text box up/down" preview slider stores an explicit override in
+    // state.layout.fitTextTop instead. Both this DOM path and the canvas
+    // export (paintCard/paintFitCopy) compute the same geometry from the
+    // same content, so the downloaded PNG always matches what's on screen.
     const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+    const { textTopPct, artHeightPct } = fit;
     if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
     const cq = px => (px / 1080 * 100).toFixed(3) + 'cqw';
     preview.innerHTML = `
@@ -597,13 +605,13 @@ function renderCard() {
       ${stickers}
       ${date ? `<div class="card-date">${escapeHtml(date)}</div>` : ''}
       ${d.image ? `
-        <div class="fit-art-section" style="border-color:${d.border || '#fbbf24'}">
+        <div class="fit-art-section" style="border-color:${d.border || '#fbbf24'};top:${FIT_ART_TOP}%;height:${artHeightPct}%">
           <img src="${d.image}" alt="" class="card-art-img" style="object-position:50% ${d.imageFocusY ?? 50}%">
         </div>
       ` : ''}
       ${state.photo ? photoMarkup('card', d.image ? 'fit' : null) : ''}
 
-      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="padding-top:${cq(20 * fit.gapScale)};${panelStyleOverride(d)}">
+      <section class="card-copy fit-copy ${d.panel ? 'text-panel' : ''}" style="top:${textTopPct}%;padding-top:${cq(20 * fit.gapScale)};${panelStyleOverride(d)}">
         <h3 style="font-size:${cq(fit.titleSize)};line-height:1.15;margin-bottom:${cq(14 * fit.gapScale)}">${escapeHtml(cardTitle())}</h3>
         <p style="font-size:${cq(fit.msgSize)};line-height:1.25">${escapeHtml($('#message').value)}</p>
         ${d.tagline ? `<div class="card-tagline-text" style="margin-top:${cq(20 * fit.gapScale)};font-size:${cq(FIT_TAGLINE_SIZE)}"><em>${escapeHtml(d.tagline)}</em></div>` : ''}
@@ -669,7 +677,7 @@ function renderCard() {
   }
 
   bindPhotoDrag($('#cardPreview .card-photo-frame'));
-  syncPreviewTune();
+  syncPreviewTune(isFit);
 }
 
 function openPreview() {
@@ -820,12 +828,19 @@ function bindPhoto() {
 
 function bindPreviewTune() {
   $('#previewBack').onclick = () => closeModal('previewModal');
-  ['titleSize', 'bodySize', 'copyShift', 'lineHeightCtl'].forEach(id => $('#' + id).oninput = e => {
+  ['titleSize', 'bodySize', 'copyShift', 'lineHeightCtl', 'fitTextTop'].forEach(id => $('#' + id).oninput = e => {
     const key = id === 'lineHeightCtl' ? 'lineHeight' : id;
     state.layout[key] = Number(e.target.value);
     renderCard();
     saveWorking();
   });
+  // Drops the manual override so the text box goes back to auto-collapsing
+  // to fit the current message, handing the freed space back to the photo.
+  $('#fitTextTopAuto').onclick = () => {
+    state.layout.fitTextTop = 'auto';
+    renderCard();
+    saveWorking();
+  };
   ['quickFrameSize', 'quickFrameY'].forEach(id => $('#' + id).oninput = e => {
     const key = id === 'quickFrameSize' ? 'frameSize' : 'frameY';
     state.photoCfg[key] = Number(e.target.value);
@@ -835,7 +850,7 @@ function bindPreviewTune() {
   });
 }
 
-function syncPreviewTune() {
+function syncPreviewTune(isFit) {
   if (!$('#previewTune')) return;
   $('#titleSize').value = state.layout.titleSize;
   $('#titleSizeOut').value = state.layout.titleSize;
@@ -845,6 +860,19 @@ function syncPreviewTune() {
   $('#copyShiftOut').value = state.layout.copyShift;
   $('#lineHeightCtl').value = state.layout.lineHeight;
   $('#lineHeightOut').value = state.layout.lineHeight + '%';
+  if (isFit) {
+    const d = design(), sender = data().sender;
+    const isAuto = typeof state.layout.fitTextTop !== 'number';
+    // Show where the box currently sits (auto-computed or manually set) so
+    // the slider always reflects reality instead of a stale default.
+    const effective = isAuto
+      ? autoFitTextTopPct(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' })
+      : state.layout.fitTextTop;
+    $('#fitTextTop').value = Math.round(effective);
+    $('#fitTextTopOut').value = isAuto ? 'Auto' : Math.round(effective) + '%';
+    $('#fitTextTopAuto').classList.toggle('hidden', isAuto);
+  }
+  $('.fit-quick').classList.toggle('hidden', !isFit);
   $('#quickFrameSize').value = state.photoCfg.frameSize;
   $('#quickFrameSizeOut').value = state.photoCfg.frameSize + '%';
   $('#quickFrameY').value = state.photoCfg.frameY;
@@ -1112,9 +1140,17 @@ async function makeImage() {
       const img = await loadImg(d.image);
       if (img) {
         const artW = c.width * 0.78;
-        const artH = c.height * (d.compactArt ? 0.08 : 0.23);
+        // isFit templates: the art zone auto-collapses/grows with the same
+        // geometry as the DOM preview and paintFitCopy() (fitZoneGeometry(),
+        // keyed off the same title/message/tagline/signature content, or the
+        // user's manual "Text box up/down" override), so the downloaded PNG
+        // always matches what's on screen. Non-fit templates keep their
+        // original fixed 23% (or 8% for compactArt) height.
+        const artH = isFit
+          ? c.height * fitZoneGeometry(d, cardTitle(), $('#message').value, { hasSender: !!data().sender, tagline: d.tagline || '' }).artHeightPct / 100
+          : c.height * (d.compactArt ? 0.08 : 0.23);
         const px = (c.width - artW) / 2;
-        const py = c.height * 0.11;
+        const py = c.height * (isFit ? FIT_ART_TOP : 11) / 100;
         x.save();
         roundedPath(x, px, py, artW, artH, 24);
         x.clip();
@@ -1227,6 +1263,35 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 30;
   }
 
+  // Measure the message/signature/tagline block at its real sizes FIRST (a
+  // dry run, no drawing) so the art zone below can grow into whatever room
+  // that leaves -- instead of the old fixed h*0.24 art box, which on a short
+  // message left a big blank gap before the tagline (which itself had a
+  // forced-minimum offset for the same reason). Mirrors the isFit branch's
+  // auto-collapsing text zone (fitZoneGeometry()/autoFitTextTopPct()), just
+  // expressed as "measure the text, then grow the image" rather than "compute
+  // a top% from the natural text height", since this poster layout is plain
+  // top-to-bottom flow rather than fixed absolute zones.
+  const artTopY = currentY;
+  const greeting = cardTitle();
+  x.font = `800 ${l.titleSize * 1.4}px ${FONT_MAP[d.font] || 'sans-serif'}`;
+  const titleLines = measureLines(x, greeting, w * 0.85);
+  const titleBlockH = titleLines.length * (l.titleSize * 1.6);
+  x.font = `600 ${l.bodySize * 1.3}px ${BODY_FONT}`;
+  const bodyLines = measureLines(x, $('#message').value, w * 0.85);
+  const bodyBlockH = bodyLines.length * (l.bodySize * 1.6);
+  const senderBlockH = sender ? 20 + 35 : 0;
+  const photoOverlayH = (d.image && state.photo) ? (w * 0.26 + 25) : 0;
+  const copyShiftPx = (l.copyShift || 0) * 2;
+  // Everything between the art zone's bottom and the tagline's Y position,
+  // at the sizes computed above: the +25 art-to-content gap, the optional
+  // "dual frame" user photo, the copyShift nudge, title+15 gap+body, the
+  // signature, and a small fixed gap before the tagline.
+  const postArtH = 25 + photoOverlayH + copyShiftPx + titleBlockH + 15 + bodyBlockH + senderBlockH + 20;
+  const bottomLimit = h * 0.88, minArtH = h * 0.14, maxArtH = h * 0.42, defaultArtH = h * 0.24;
+  const roomForArt = bottomLimit - artTopY - postArtH;
+  const autoArtH = Math.max(minArtH, Math.min(maxArtH, roomForArt > 0 ? roomForArt : defaultArtH));
+
   // Traditional artwork always draws when present; the user's photo (if
   // any) gets its own separate, smaller frame right after it instead of
   // replacing it (item 15).
@@ -1234,7 +1299,7 @@ async function paintPosterCanvas(x, d, w, h) {
     try {
       const img = await loadImg(d.image);
       const artW = w * 0.88;
-      const artH = h * 0.24;
+      const artH = autoArtH;
       const px = (w - artW) / 2;
       x.save();
       roundedPath(x, px, currentY, artW, artH, 20);
@@ -1267,20 +1332,18 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 15;
   }
 
-  // Message area
+  // Message area -- titleLines/bodyLines were already measured above (before
+  // the art zone was sized) so they're reused here rather than re-measured.
   currentY += (l.copyShift || 0) * 2;
   x.fillStyle = d.textColor || '#1e293b';
   x.textAlign = 'center';
   x.textBaseline = 'top';
 
-  const greeting = cardTitle();
   x.font = `800 ${l.titleSize * 1.4}px ${FONT_MAP[d.font] || 'sans-serif'}`;
-  const titleLines = measureLines(x, greeting, w * 0.85);
   currentY = drawLines(x, titleLines, w / 2, currentY, l.titleSize * 1.6);
   currentY += 15;
 
   x.font = `600 ${l.bodySize * 1.3}px ${BODY_FONT}`;
-  const bodyLines = measureLines(x, $('#message').value, w * 0.85);
   currentY = drawLines(x, bodyLines, w / 2, currentY, l.bodySize * 1.6);
 
   if (sender) {
@@ -1291,10 +1354,11 @@ async function paintPosterCanvas(x, d, w, h) {
     currentY += 35;
   }
 
-  // Tagline banner -- positioned relative to the flowing content (not a fixed
-  // h*0.88 offset) so there's no leftover blank gap now that the four
-  // health/safety pillar boxes have been removed.
-  const taglineY = Math.min(Math.max(currentY + 40, h * 0.74), h * 0.86);
+  // Tagline banner -- follows the flowing content closely now that the art
+  // zone above has already absorbed the freed space (the art zone was sized
+  // so this naturally lands near bottomLimit); Math.min is just a safety
+  // clamp against the footer for edge cases the estimate undershoots.
+  const taglineY = Math.min(currentY + 20, h * 0.86);
   x.font = 'italic 700 22px Arial, sans-serif';
   x.fillStyle = d.textColor || '#1e293b';
   x.textAlign = 'center';
@@ -1325,21 +1389,96 @@ const FIT_TITLE_MAX = 84, FIT_TITLE_MIN = 34;
 const FIT_MSG_MAX = 46, FIT_MSG_MIN = 24;
 const FIT_TAGLINE_SIZE = 26, FIT_SIG_SIZE = 36;
 const FIT_GAP_MIN = 0.45;
+const FIT_MAX_WIDTH = 1080 * 0.78; // narrower than .card-copy's real 84% width
+
+// The art zone always starts at 11% (matches .fit-art-section's CSS top and
+// the canvas's h*0.11) and keeps a fixed 4-point gap above the text zone.
+// Where the text zone itself starts (state.layout.fitTextTop) is normally
+// computed automatically from the actual title/message/tagline/signature --
+// "collapsing" the text box to only as much room as that content needs at
+// full size, and handing everything freed up back to the art zone above it
+// -- so a short message always shows a bigger photo without any manual step.
+// Dragging the "Text box up/down" preview slider stores an explicit number
+// there instead, overriding the automatic placement for that one card.
+// FIT_AUTO_MIN/MAX bound both the automatic and the manual placement to the
+// same sane range, so neither the art zone nor the text zone ever collapses
+// to nothing. Both the DOM preview (renderCard's isFit branch) and the
+// canvas export (paintCard/paintFitCopy, via fitCardCopy()'s returned
+// textTopPct/artHeightPct) derive from the exact same geometry, so the
+// downloaded PNG always matches the on-screen preview.
+const FIT_ART_TOP = 11, FIT_ART_GAP = 4, FIT_ZONE_BOTTOM = 88, FIT_ART_HEIGHT_MIN = 10;
+const FIT_AUTO_MIN = 26, FIT_AUTO_MAX = 60;
 // Canvas measureText() and real browser CSS text layout don't wrap at exactly
 // the same point for the same nominal font -- small font-metric/kerning
 // differences can push the DOM to one more line than the offscreen canvas
 // measurement predicted. Measuring against a narrower width than the real
-// 84%-wide box, and budgeting less than the real 50%-tall zone, is a one-sided
+// 84%-wide box, and budgeting less than the real tall zone, is a one-sided
 // safety margin: it only ever makes the canvas measurement UNDER-estimate how
 // much fits, so the real (wider, taller) DOM box always has at least as much
 // room as what was measured -- never less, so it can never actually overflow.
-const FIT_BUDGET_H = (1350 * 0.88 - 1350 * 0.38) * 0.88; // 594, was 675
-const FIT_MAX_WIDTH = 1080 * 0.78; // narrower than .card-copy's real 84% width
+// Parametrized by the zone's own top so a smaller zone (auto-collapsed for a
+// short message, or dragged down manually) shrinks the type-fit budget to
+// match, instead of a fixed constant that assumed the zone was always
+// 38%-88%.
+function fitBudgetH(textTopPct) { return (1350 * FIT_ZONE_BOTTOM / 100 - 1350 * textTopPct / 100) * 0.88; }
+
+// Ideal (un-budgeted) height this exact title/message/tagline/signature would
+// take at full preferred font sizes and full gaps -- i.e. how tall the text
+// zone would need to be for fitCardCopy() to never have to shrink anything.
+// Converted to a top%, then a little headroom (1.08x) is added so the text
+// doesn't hug the zone's own top/bottom edges, and the result is clamped to
+// FIT_AUTO_MIN/MAX.
+function autoFitTextTopPct(d, title, message, opts) {
+  const { hasSender = false, tagline = '' } = opts || {};
+  const family = FONT_MAP[d.font] || 'sans-serif';
+  const ctx = getFitContext();
+  ctx.font = `800 ${FIT_TITLE_MAX}px ${family}`;
+  const titleLines = measureLines(ctx, title, FIT_MAX_WIDTH);
+  ctx.font = `600 ${FIT_MSG_MAX}px ${BODY_FONT}`;
+  const msgLines = measureLines(ctx, message, FIT_MAX_WIDTH);
+  let tagLines = [];
+  if (tagline) {
+    ctx.font = `700 ${FIT_TAGLINE_SIZE}px ${BODY_FONT}`;
+    tagLines = measureLines(ctx, tagline, FIT_MAX_WIDTH);
+  }
+  const topPad = 20, titleGap = 14, tagGap = tagline ? 20 : 0, sigGap = hasSender ? 20 : 0,
+    titleH = titleLines.length * FIT_TITLE_MAX * 1.15,
+    msgH = msgLines.length * FIT_MSG_MAX * 1.25,
+    tagH = tagLines.length * FIT_TAGLINE_SIZE * 1.3,
+    sigH = hasSender ? FIT_SIG_SIZE * 1.2 : 0;
+  const naturalTotal = topPad + titleH + titleGap + msgH + tagGap + tagH + sigGap + sigH;
+  // 8% headroom only (not also reversing fitBudgetH's own 0.88 wrap-safety
+  // factor, which was double-counted here in an earlier version and left the
+  // zone -- and so the cream text-panel's background -- about 23% taller
+  // than its content actually needed, i.e. exactly the leftover blank space
+  // this feature exists to remove). fitBudgetH()'s 0.88 still applies on top
+  // of this when fitCardCopy() decides gaps/font sizes, so real DOM text
+  // wrapping slightly wider than the canvas estimate still can't overflow.
+  const idealZonePct = (naturalTotal * 1.08) / 1350 * 100;
+  const textTop = FIT_ZONE_BOTTOM - idealZonePct;
+  return Math.max(FIT_AUTO_MIN, Math.min(FIT_AUTO_MAX, textTop));
+}
+
+// Single source of truth for where the text zone starts and how tall the art
+// zone is, for a given card's content -- a manual slider value in
+// state.layout.fitTextTop wins when present, otherwise it's computed from
+// the content via autoFitTextTopPct(). Every render/export path calls this
+// (directly, or via fitCardCopy()'s returned fields) with the same
+// d/title/message/opts, so preview, canvas export and the "Fine tune
+// preview" slider never disagree about the current geometry.
+function fitZoneGeometry(d, title, message, opts) {
+  const manual = state.layout && typeof state.layout.fitTextTop === 'number' ? state.layout.fitTextTop : null;
+  const textTopPct = manual !== null ? manual : autoFitTextTopPct(d, title, message, opts);
+  const artHeightPct = Math.max(FIT_ART_HEIGHT_MIN, textTopPct - FIT_ART_TOP - FIT_ART_GAP);
+  return { textTopPct, artHeightPct };
+}
 
 function fitCardCopy(d, title, message, opts) {
   const { hasSender = false, tagline = '' } = opts || {};
   const family = FONT_MAP[d.font] || 'sans-serif';
   const ctx = getFitContext();
+  const { textTopPct, artHeightPct } = fitZoneGeometry(d, title, message, opts);
+  const budgetH = fitBudgetH(textTopPct);
 
   function measure(titleSize, msgSize, gapScale) {
     ctx.font = `800 ${titleSize}px ${family}`;
@@ -1366,25 +1505,25 @@ function fitCardCopy(d, title, message, opts) {
   // Phase 1: full (preferred) font size, shrink inter-element gaps first.
   for (let g = 1; g >= FIT_GAP_MIN; g -= 0.05) {
     const r = measure(FIT_TITLE_MAX, FIT_MSG_MAX, g);
-    if (r.total <= FIT_BUDGET_H) return { titleSize: FIT_TITLE_MAX, msgSize: FIT_MSG_MAX, gapScale: g, fits: true, ...r };
+    if (r.total <= budgetH) return { titleSize: FIT_TITLE_MAX, msgSize: FIT_MSG_MAX, gapScale: g, fits: true, textTopPct, artHeightPct, ...r };
   }
   // Phase 2: gaps at floor, shrink title+message together down to enforced minimums.
   for (let s = 1; s >= 0; s -= 0.02) {
     const ts = FIT_TITLE_MIN + (FIT_TITLE_MAX - FIT_TITLE_MIN) * s;
     const ms = FIT_MSG_MIN + (FIT_MSG_MAX - FIT_MSG_MIN) * s;
     const r = measure(ts, ms, FIT_GAP_MIN);
-    if (r.total <= FIT_BUDGET_H) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, ...r };
+    if (r.total <= budgetH) return { titleSize: ts, msgSize: ms, gapScale: FIT_GAP_MIN, fits: true, textTopPct, artHeightPct, ...r };
   }
   // Truly infeasible even at floor sizes (only possible with pathological
   // user-typed text, not any generated message) -- caller must warn rather
   // than clip/truncate; render at floor sizes with overflow left visible.
-  return { titleSize: FIT_TITLE_MIN, msgSize: FIT_MSG_MIN, gapScale: FIT_GAP_MIN, fits: false, ...measure(FIT_TITLE_MIN, FIT_MSG_MIN, FIT_GAP_MIN) };
+  return { titleSize: FIT_TITLE_MIN, msgSize: FIT_MSG_MIN, gapScale: FIT_GAP_MIN, fits: false, textTopPct, artHeightPct, ...measure(FIT_TITLE_MIN, FIT_MSG_MIN, FIT_GAP_MIN) };
 }
 
 function paintFitCopy(x, d, w, h) {
   const sender = data().sender, family = FONT_MAP[d.font] || 'sans-serif';
-  const top = h * 0.38;
   const fit = fitCardCopy(d, cardTitle(), $('#message').value, { hasSender: !!sender, tagline: d.tagline || '' });
+  const top = h * fit.textTopPct / 100;
   if (!fit.fits) toast('Message is long for this template — showing it at minimum readable size.');
 
   x.textAlign = 'center';
