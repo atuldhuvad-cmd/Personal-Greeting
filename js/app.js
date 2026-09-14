@@ -1579,7 +1579,10 @@ function paintFitCopy(x, d, w, h) {
     x.fill();
     x.stroke();
     x.restore();
-    x.fillStyle = isDark ? '#fffdfa' : '#1e112a';
+    // See the matching comment in paintCopy() -- use the template's own
+    // curated textColor on a pale panel instead of one flat #1e112a for
+    // every festival template (Sep-2026 "Black font message" report).
+    x.fillStyle = isDark ? '#fffdfa' : (d.textColor || '#1e112a');
   } else {
     x.fillStyle = d.textColor || '#ffffff';
   }
@@ -1653,8 +1656,18 @@ function paintCopy(x, d, w, h) {
     x.stroke();
     x.restore();
 
-    // High contrast text
-    x.fillStyle = isDark ? '#fffdfa' : '#1e112a';
+    // High contrast text -- pale panel case uses the template's OWN curated
+    // textColor (e.g. ganesh-emerald's dark green, ganesh-royal's maroon)
+    // instead of one flat near-black (#1e112a) for every panel template.
+    // Every panel:true template's textColor already passes isLightColor()
+    // false here (that's what put it in this branch), meaning it was already
+    // chosen dark enough to read on a pale panel -- so using it directly is
+    // exactly as readable, just no longer flattens every festival's message
+    // to the same drab tone (Sep-2026 report: "Black font message is not
+    // looks good" across the Hindu-festival panel templates). Matches the
+    // DOM preview, which already inherits color:d.textColor from
+    // .card-preview with no override, so download now matches preview too.
+    x.fillStyle = isDark ? '#fffdfa' : (d.textColor || '#1e112a');
   } else {
     x.fillStyle = d.textColor || '#ffffff';
   }
